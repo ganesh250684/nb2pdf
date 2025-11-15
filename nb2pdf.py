@@ -426,6 +426,7 @@ def create_pdf(notebook_path, output_path, config):
         parent=styles['Code'],
         fontSize=9,
         fontName='Courier',
+        leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
         textColor=colors.HexColor('#1a1a1a'),
@@ -440,6 +441,7 @@ def create_pdf(notebook_path, output_path, config):
         parent=styles['Code'],
         fontSize=9,
         fontName='Courier',
+        leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
         textColor=colors.HexColor('#2e7d32'),
@@ -454,6 +456,7 @@ def create_pdf(notebook_path, output_path, config):
         parent=styles['Code'],
         fontSize=9,
         fontName='Courier',
+        leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
         textColor=colors.HexColor('#c62828'),
