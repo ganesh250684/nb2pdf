@@ -57,11 +57,16 @@ python nb2pdf.py your_notebook.ipynb
 git clone https://github.com/ganesh250684/nb2pdf.git
 cd nb2pdf
 
-# Install dependencies
+# Install required dependency
 pip install reportlab
+
+# Optional: Install if your notebook uses plots/graphs
+pip install matplotlib pandas
 
 # You're ready!
 ```
+
+> **Note:** If your notebook imports libraries like `matplotlib`, `pandas`, `numpy`, etc., make sure they're installed in your Python environment before running nb2pdf.
 
 ---
 

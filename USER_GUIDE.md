@@ -52,11 +52,31 @@ You should see something like `Python 3.10.x` or higher. If not, install Python 
 
 ### Step 2: Install Required Library
 ```powershell
-# Install reportlab (the PDF generation library)
+# Required: Install reportlab (the PDF generation library)
 pip install reportlab
 ```
 
-### Step 3: Edit Your Student Information
+### Step 3: Install Optional Libraries (If Your Notebook Uses Them)
+
+**If your notebook uses any of these libraries, install them:**
+
+```powershell
+# For data analysis and DataFrames
+pip install pandas
+
+# For plotting/graphs
+pip install matplotlib
+
+# For numerical operations
+pip install numpy
+
+# Install multiple at once
+pip install pandas matplotlib numpy
+```
+
+> **Important:** nb2pdf executes your notebook code. If your notebook imports `matplotlib`, `pandas`, `numpy`, etc., those libraries must be installed or you'll get `ModuleNotFoundError` in the PDF.
+
+### Step 4: Edit Your Student Information
 1. Open `student_info.json` in any text editor (Notepad, VS Code, etc.)
 2. Replace the values with YOUR information:
 
@@ -187,6 +207,19 @@ C:\Python313\python.exe nb2pdf.py "notebook.ipynb"
 ```powershell
 pip install reportlab
 ```
+
+### Problem: "No module named 'matplotlib'" or "No module named 'pandas'"
+**Solution:** Your notebook imports these libraries but they're not installed
+```powershell
+# Install the missing library
+pip install matplotlib
+pip install pandas
+pip install numpy
+
+# Or install all common libraries at once
+pip install pandas matplotlib numpy
+```
+**Note:** The error will show in the PDF at the cell where the import failed. Install the library and regenerate the PDF.
 
 ### Problem: "Permission denied" error
 **Solution:** The PDF file is currently open. Close it and try again.

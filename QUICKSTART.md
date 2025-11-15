@@ -11,8 +11,14 @@ Get nb2pdf running in **2 minutes**!
 ## Step 1: Install Dependencies (30 seconds)
 
 ```bash
+# Required
 pip install reportlab
+
+# Optional (if your notebook uses these)
+pip install matplotlib pandas numpy
 ```
+
+> **💡 Tip:** If your notebook imports libraries like `matplotlib`, `pandas`, or `numpy`, install them first or nb2pdf will show import errors in the PDF.
 
 ## Step 2: Configure Your Info (60 seconds)
 
