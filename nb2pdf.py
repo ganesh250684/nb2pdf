@@ -538,10 +538,10 @@ def dataframe_to_table(df, max_rows=50):
 
 def create_pdf(notebook_path, output_path, config):
     """Create PDF from notebook execution results"""
-    print(f"📓 Loading notebook: {notebook_path}")
+    print(f"Loading notebook: {notebook_path}")
     
     # Execute notebook
-    print("⚙️  Executing cells...")
+    print("Executing cells...")
     results = execute_notebook(notebook_path)
     
     # Create PDF
@@ -755,7 +755,7 @@ def create_pdf(notebook_path, output_path, config):
                 except:
                     pass  # Ignore cleanup errors
     
-    print(f"✅ PDF created successfully: {output_path}")
+    print(f"PDF created successfully: {output_path}")
 
 
 def main():
@@ -779,11 +779,11 @@ Examples:
     # Validate notebook path
     notebook_path = Path(args.notebook)
     if not notebook_path.exists():
-        print(f"❌ Error: Notebook not found: {notebook_path}")
+        print(f"Error: Notebook not found: {notebook_path}")
         sys.exit(1)
     
     if not notebook_path.suffix == '.ipynb':
-        print(f"❌ Error: File must be a Jupyter notebook (.ipynb)")
+        print(f"Error: File must be a Jupyter notebook (.ipynb)")
         sys.exit(1)
     
     # Determine output path
@@ -800,7 +800,7 @@ Examples:
     try:
         create_pdf(notebook_path, output_path, config)
     except Exception as e:
-        print(f"❌ Error creating PDF: {e}")
+        print(f"Error creating PDF: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
