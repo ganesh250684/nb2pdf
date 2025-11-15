@@ -310,13 +310,16 @@ def execute_notebook(notebook_path):
         }
         
         if cell_type == 'code':
-            # Capture stdout and stderr
+            # Capture stdout and stderr with size limits
             old_stdout = sys.stdout
             old_stderr = sys.stderr
             buf_out = io.StringIO()
             buf_err = io.StringIO()
             sys.stdout = buf_out
             sys.stderr = buf_err
+            
+            # Track output size to prevent memory issues
+            max_output_size = 1_000_000  # 1MB limit
             
             result_value = None
             try:
@@ -370,8 +373,20 @@ def execute_notebook(notebook_path):
                 sys.stdout = old_stdout
                 sys.stderr = old_stderr
             
-            output = buf_out.getvalue()
-            errors = buf_err.getvalue()
+            # Safely get output with size check
+            try:
+                if buf_out.tell() > max_output_size:
+                    output = "[Output truncated - exceeded 1MB limit]\n"
+                else:
+                    output = buf_out.getvalue()
+                    
+                if buf_err.tell() > max_output_size:
+                    errors = "[Error output truncated - exceeded 1MB limit]\n"
+                else:
+                    errors = buf_err.getvalue()
+            except MemoryError:
+                output = "[Output too large - memory error]\n"
+                errors = ""
             
             # Add the result value if it exists and isn't None
             if result_value is not None:
