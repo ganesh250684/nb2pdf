@@ -24,20 +24,20 @@
 
 ## 📥 Part 1: Getting the Files
 
-### Option A: If Ganesh Shared via GitHub
+### Option A: via GitHub
 ```powershell
 # Clone the repository
-git clone https://github.com/Ganesh2506/Project-A.git
-cd Project-A
+git clone https://github.com/ganesh250684/nb2pdf.git
+cd nb2pdf
 ```
 
-### Option B: If Shared via ZIP File/Google Drive
-1. Download the ZIP file
-2. Extract it to a folder (e.g., `D:\IITM\nb2pdf-tool\`)
-3. You need these files:
-   - `nb2pdf.py` (the main tool)
+### Option B: Download ZIP File
+1. **Download:** [nb2pdf.zip](https://github.com/ganesh250684/nb2pdf/raw/main/nb2pdf.zip)
+2. **Extract** it to a folder (e.g., `D:\IITM\nb2pdf-tool\`)
+3. You'll get these files:
+   - `nb2pdf.py` (the main conversion tool)
    - `student_info.json` (your details template)
-   - `INSTRUCTIONS.md` (this file)
+   - `README.md`, `USER_GUIDE.md` (documentation)
 
 ---
 
@@ -74,6 +74,19 @@ pip install reportlab
 ---
 
 ## 🚀 Part 3: Using nb2pdf
+
+### Important: nb2pdf Runs Your Notebook Automatically! ⚡
+
+**You do NOT need to run your notebook first!** 
+
+nb2pdf will:
+1. ✅ **Execute all cells automatically** from top to bottom
+2. ✅ **Capture all outputs** (print statements, DataFrames, plots, errors)
+3. ✅ **Generate the PDF** with formatted code and results
+
+**Just point it at your `.ipynb` file and go!** The notebook doesn't even need to be open in VS Code.
+
+---
 
 ### Basic Usage
 
@@ -185,30 +198,32 @@ python nb2pdf.py "D:\My Documents\notebook.ipynb"
 ```
 
 ### Problem: "Syntax errors" in the output
-**Solution:** Your notebook has syntax errors. Fix them in VS Code first, then regenerate PDF.
+**Solution:** Your notebook has syntax errors. Fix them in VS Code first, then regenerate the PDF.
 
-### Problem: PDF looks different from VS Code
-**Solution:** Make sure you:
-1. Saved your notebook before running nb2pdf
-2. Run all cells in VS Code first to see expected output
-3. Check that all imports (pandas, etc.) are in your notebook
+### Problem: PDF looks different from expected
+**Solution:** 
+1. Make sure your notebook is saved (Ctrl+S) before running nb2pdf
+2. nb2pdf executes all cells automatically - no need to run them manually
+3. Check that all required libraries (pandas, numpy, etc.) are installed
+4. Verify `student_info.json` has the correct details
 
 ---
 
 ## 🌟 Part 7: Tips & Best Practices
 
 ### ✅ DO:
-- Run all cells in your notebook before converting to PDF
-- Save your notebook (Ctrl+S) before running nb2pdf
+- **Save your notebook** (Ctrl+S) before running nb2pdf - unsaved changes won't be included
 - Use descriptive output names: `Assignment1_RollNumber.pdf`
 - Test on a small notebook first
-- Keep student_info.json updated
+- Keep `student_info.json` updated with your current assignment details
+- Make sure all required libraries (pandas, numpy, etc.) are installed
 
 ### ❌ DON'T:
 - Don't have the PDF open when regenerating (close it first)
 - Don't rename `nb2pdf.py` to something else
 - Don't delete the `student_info.json` file
 - Don't try to edit the PDF directly
+- Don't worry about running cells manually - nb2pdf does it for you!
 
 ---
 

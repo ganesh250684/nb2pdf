@@ -2,6 +2,12 @@
 
 Get nb2pdf running in **2 minutes**!
 
+## What nb2pdf Does
+
+**nb2pdf automatically runs all cells in your notebook and generates a PDF** - you don't need to execute the notebook first! Just point it at your `.ipynb` file and it does the rest.
+
+---
+
 ## Step 1: Install Dependencies (30 seconds)
 
 ```bash
@@ -79,9 +85,9 @@ pip install reportlab
 
 📖 **Full Documentation:** See [USER_GUIDE.md](USER_GUIDE.md)
 
-💬 **Questions:** [GitHub Discussions](https://github.com/Ganesh2506/nb2pdf/discussions)
+💬 **Questions:** [GitHub Discussions](https://github.com/ganesh250684/nb2pdf/discussions)
 
-🐛 **Bugs:** [GitHub Issues](https://github.com/Ganesh2506/nb2pdf/issues)
+🐛 **Bugs:** [GitHub Issues](https://github.com/ganesh250684/nb2pdf/issues)
 
 ---
 

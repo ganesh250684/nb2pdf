@@ -6,7 +6,7 @@ Transform your `.ipynb` files into professional, submission-ready PDF reports wi
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Ganesh2506/nb2pdf/graphs/commit-activity)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/ganesh250684/nb2pdf/graphs/commit-activity)
 
 ---
 
@@ -54,7 +54,7 @@ python nb2pdf.py your_notebook.ipynb
 
 ```bash
 # Clone or download this repository
-git clone https://github.com/Ganesh2506/nb2pdf.git
+git clone https://github.com/ganesh250684/nb2pdf.git
 cd nb2pdf
 
 # Install dependencies
@@ -234,8 +234,8 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 ## 📞 Support & Contact
 
-- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/Ganesh2506/nb2pdf/issues)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/Ganesh2506/nb2pdf/discussions)
+- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/ganesh250684/nb2pdf/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/ganesh250684/nb2pdf/discussions)
 - 📧 **Email:** ganesh.kumbhar@example.com *(replace with your email)*
 - 🐦 **Twitter:** @ganesh2506 *(if you have Twitter)*
 
@@ -245,7 +245,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 - ⭐ **Stars:** Help us reach 100!
 - 🍴 **Forks:** Feel free to fork and customize
-- 📥 **Downloads:** Track on [releases](https://github.com/Ganesh2506/nb2pdf/releases)
+- 📥 **Downloads:** Track on [releases](https://github.com/ganesh250684/nb2pdf/releases)
 - 👥 **Contributors:** [See all contributors](https://github.com/Ganesh2506/nb2pdf/graphs/contributors)
 
 ---

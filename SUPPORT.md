@@ -61,7 +61,7 @@ Support ongoing development with a monthly contribution.
 Can't donate money? No problem! You can still help:
 
 1. **⭐ Star the repo** - Helps others discover nb2pdf
-   - [Star on GitHub](https://github.com/Ganesh2506/nb2pdf)
+   - [Star on GitHub](https://github.com/ganesh250684/nb2pdf)
 
 2. **📢 Share with classmates** - The more users, the better the tool
    - Post on WhatsApp groups
@@ -74,10 +74,10 @@ Can't donate money? No problem! You can still help:
    - Social media post
 
 4. **🐛 Report bugs** - Help improve quality
-   - [Submit issues](https://github.com/Ganesh2506/nb2pdf/issues)
+   - [Submit issues](https://github.com/ganesh250684/nb2pdf/issues)
 
 5. **💡 Suggest features** - Shape the future
-   - [Share ideas](https://github.com/Ganesh2506/nb2pdf/discussions)
+   - [Share ideas](https://github.com/ganesh250684/nb2pdf/discussions)
 
 6. **🔧 Contribute code** - Direct impact
    - [See CONTRIBUTING.md](CONTRIBUTING.md)
@@ -155,7 +155,7 @@ Is your company using nb2pdf?
 - 🤝 Influence feature roadmap
 - 📢 Marketing to student demographic
 
-**Contact:** ganesh.kumbhar@example.com *(replace with your email)*
+**Contact:** ganesh2506@gmail.com
 
 ## 📜 Donation FAQ
 
@@ -221,8 +221,8 @@ Together, we're helping thousands of students focus on learning instead of fight
 
 **Every star ⭐, every share 📢, every donation 💖 matters!**
 
-[![Star on GitHub](https://img.shields.io/github/stars/Ganesh2506/nb2pdf?style=social)](https://github.com/Ganesh2506/nb2pdf)
+[![Star on GitHub](https://img.shields.io/github/stars/ganesh250684/nb2pdf?style=social)](https://github.com/ganesh250684/nb2pdf)
 
-[Donate Now](https://www.buymeacoffee.com/ganesh2506) | [GitHub Sponsors](https://github.com/sponsors/Ganesh2506) | [Share on Twitter](https://twitter.com/intent/tweet?text=Check%20out%20nb2pdf%20-%20Convert%20Jupyter%20Notebooks%20to%20Beautiful%20PDFs!&url=https://github.com/Ganesh2506/nb2pdf)
+[Donate Now](https://www.buymeacoffee.com/ganesh2506) | [GitHub Sponsors](https://github.com/sponsors/Ganesh2506) | [Share on Twitter](https://twitter.com/intent/tweet?text=Check%20out%20nb2pdf%20-%20Convert%20Jupyter%20Notebooks%20to%20Beautiful%20PDFs!&url=https://github.com/ganesh250684/nb2pdf)
 
 </div>
