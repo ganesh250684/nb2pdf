@@ -545,7 +545,7 @@ def create_pdf(notebook_path, output_path, config):
     results = execute_notebook(notebook_path)
     
     # Create PDF
-    print(f"📄 Generating PDF: {output_path}")
+    print(f"Generating PDF: {output_path}")
     doc = SimpleDocTemplate(
         str(output_path),
         pagesize=A4,
@@ -626,7 +626,7 @@ def create_pdf(notebook_path, output_path, config):
     # Add cells
     for result in results:
         # Cell header
-        cell_type_label = "📝 Markdown" if result['type'] == 'markdown' else "💻 Code"
+        cell_type_label = "Markdown" if result['type'] == 'markdown' else "Code"
         header_text = f"Cell {result['index']}: {cell_type_label}"
         story.append(Paragraph(header_text, cell_header_style))
         
