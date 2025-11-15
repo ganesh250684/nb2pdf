@@ -271,6 +271,9 @@ def execute_notebook(notebook_path):
     # Storage for captured DataFrames with their position in output
     captured_dataframes = []
     
+    # Storage for captured plots/figures
+    captured_figures = []
+    
     # Custom display function
     def display(obj):
         try:
@@ -294,6 +297,7 @@ def execute_notebook(notebook_path):
         
         # Reset DataFrame capture for each cell
         captured_dataframes.clear()
+        captured_figures.clear()
         
         cell_result = {
             'index': idx,
@@ -301,7 +305,8 @@ def execute_notebook(notebook_path):
             'source': source,
             'output': '',
             'error': None,
-            'dataframes': []
+            'dataframes': [],
+            'figures': []
         }
         
         if cell_type == 'code':
@@ -315,26 +320,49 @@ def execute_notebook(notebook_path):
             
             result_value = None
             try:
-                # Execute the code and capture the last expression result
-                # Split into statements to get the last one
+                # Execute the code and try to capture the last expression result
                 code_lines = source.strip().split('\n')
-                if code_lines:
-                    # Execute all but last line as statements
-                    if len(code_lines) > 1:
-                        exec('\n'.join(code_lines[:-1]), glb)
-                    
-                    # Try to evaluate the last line as an expression
+                
+                if not code_lines or not source.strip():
+                    # Empty cell, skip
+                    pass
+                else:
+                    # Check if the last line could be an expression
                     last_line = code_lines[-1].strip()
-                    if last_line and not last_line.startswith(('#', 'import', 'from', 'def', 'class', 'if', 'for', 'while', 'with', 'try', 'except', 'finally', 'else', 'elif')):
+                    
+                    # Skip expression evaluation for these patterns
+                    skip_patterns = ('#', 'import ', 'from ', 'def ', 'class ', 'if ', 'for ', 
+                                   'while ', 'with ', 'try:', 'except', 'finally:', 'else:', 
+                                   'elif ', 'return', 'pass', 'break', 'continue', 'raise',
+                                   'assert', 'del ', 'global ', 'nonlocal ', 'yield', 'async ')
+                    
+                    is_statement = any(last_line.startswith(p) for p in skip_patterns) or \
+                                  last_line.endswith(':') or '=' in last_line.split('#')[0]
+                    
+                    if len(code_lines) == 1 and not is_statement:
+                        # Single line that might be an expression
                         try:
-                            # Try to eval the last line to capture its result
                             result_value = eval(last_line, glb)
                         except:
-                            # If eval fails, execute it as a statement
+                            # Not an expression, execute as statement
                             exec(last_line, glb)
                     else:
-                        # Execute the last line as a statement
-                        exec(last_line, glb)
+                        # Multiple lines or definitely a statement
+                        # Execute all but the last line first
+                        if len(code_lines) > 1:
+                            exec('\n'.join(code_lines[:-1]), glb)
+                        
+                        # Try to eval the last line if it might be an expression
+                        if not is_statement and last_line:
+                            try:
+                                result_value = eval(last_line, glb)
+                            except:
+                                # Execute as statement
+                                exec(last_line, glb)
+                        else:
+                            # Execute the last line as a statement
+                            if last_line:
+                                exec(last_line, glb)
             except Exception as e:
                 import traceback
                 cell_result['error'] = traceback.format_exc()
@@ -349,15 +377,39 @@ def execute_notebook(notebook_path):
             if result_value is not None:
                 try:
                     import pandas as pd
+                    # Check if it's a DataFrame
                     if isinstance(result_value, pd.DataFrame):
                         # Add DataFrame to the list
                         captured_dataframes.append(result_value)
                         output += f"__DATAFRAME_MARKER_{len(captured_dataframes) - 1}__\n"
                     else:
-                        # Add the repr of the result
-                        output += repr(result_value) + '\n'
-                except:
-                    output += repr(result_value) + '\n'
+                        # Try to detect matplotlib figure
+                        try:
+                            import matplotlib
+                            if isinstance(result_value, matplotlib.figure.Figure):
+                                # Save the figure (we'll add image support later)
+                                output += "[Matplotlib Figure - graph display not yet supported]\n"
+                            else:
+                                # Safe repr with size limit
+                                result_repr = repr(result_value)
+                                if len(result_repr) > 5000:  # Limit to 5000 chars
+                                    result_repr = result_repr[:5000] + "... (output truncated)"
+                                output += result_repr + '\n'
+                        except ImportError:
+                            # matplotlib not available, use safe repr
+                            result_repr = repr(result_value)
+                            if len(result_repr) > 5000:
+                                result_repr = result_repr[:5000] + "... (output truncated)"
+                            output += result_repr + '\n'
+                except Exception as e:
+                    # Fallback for any errors
+                    try:
+                        result_repr = str(result_value)
+                        if len(result_repr) > 5000:
+                            result_repr = result_repr[:5000] + "... (output truncated)"
+                        output += result_repr + '\n'
+                    except:
+                        output += "[Output could not be displayed]\n"
             
             if output:
                 cell_result['output'] = output
@@ -367,6 +419,10 @@ def execute_notebook(notebook_path):
             # Store captured DataFrames
             if captured_dataframes:
                 cell_result['dataframes'] = [df.copy() for df in captured_dataframes]
+            
+            # Store captured figures
+            if captured_figures:
+                cell_result['figures'] = captured_figures.copy()
         
         results.append(cell_result)
     
