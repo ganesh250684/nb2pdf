@@ -17,13 +17,15 @@ import sys
 import io
 import argparse
 import re
+import tempfile
+import os
 from pathlib import Path
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Preformatted
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Preformatted, Image
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfgen import canvas
 
@@ -290,6 +292,36 @@ def execute_notebook(notebook_path):
         print(repr(obj))
     
     glb['display'] = display
+    
+    # Custom plt.show() wrapper to capture figures
+    original_show = None
+    def custom_show():
+        """Capture matplotlib figures when plt.show() is called"""
+        try:
+            import matplotlib.pyplot as plt
+            # Get all current figures
+            figs = [plt.figure(n) for n in plt.get_fignums()]
+            for fig in figs:
+                # Save figure to temporary file
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                fig.savefig(temp_file.name, format='png', dpi=150, bbox_inches='tight')
+                captured_figures.append(temp_file.name)
+                temp_file.close()
+                print(f"__FIGURE_MARKER_{len(captured_figures) - 1}__")
+            
+            # Close figures to prevent display
+            plt.close('all')
+        except Exception as e:
+            pass
+    
+    # Try to patch matplotlib's show function if it's imported
+    try:
+        import matplotlib.pyplot as plt
+        original_show = plt.show
+        plt.show = custom_show
+        glb['plt'] = plt  # Make patched plt available
+    except ImportError:
+        pass  # matplotlib not available, that's ok
     
     for idx, cell in enumerate(cells, 1):
         cell_type = cell.get('cell_type')
@@ -640,49 +672,57 @@ def create_pdf(notebook_path, output_path, config):
                 story.append(Paragraph("<b>Output:</b>", styles['Normal']))
                 story.append(Spacer(1, 0.1*cm))
                 
-                # If we have DataFrames, split output by markers and insert tables
-                if result.get('dataframes'):
+                # Process output with DataFrames and Figures
+                if result.get('dataframes') or result.get('figures'):
                     output_text = result.get('output', '')
-                    dataframes = result['dataframes']
+                    dataframes = result.get('dataframes', [])
+                    figures = result.get('figures', [])
                     
-                    # Split by DataFrame markers
-                    parts = output_text.split('__DATAFRAME_MARKER_')
+                    # Split by both DataFrame and Figure markers
+                    lines = output_text.split('\n')
                     
-                    for i, part in enumerate(parts):
-                        # First part is text before first DataFrame
-                        if i == 0:
-                            if part.strip():
-                                for line in part.split('\n'):
-                                    if line.strip():
-                                        safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
-                                        story.append(Preformatted(safe_line, output_style))
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                            
+                        # Check for DataFrame marker
+                        if '__DATAFRAME_MARKER_' in line:
+                            try:
+                                df_idx = int(line.split('__DATAFRAME_MARKER_')[1].split('__')[0])
+                                if df_idx < len(dataframes):
+                                    story.append(Spacer(1, 0.1*cm))
+                                    table, truncated = dataframe_to_table(dataframes[df_idx])
+                                    story.append(table)
+                                    if truncated:
+                                        story.append(Paragraph(f"<i>... (showing first 50 rows)</i>", styles['Italic']))
+                                    story.append(Spacer(1, 0.1*cm))
+                            except (ValueError, IndexError):
+                                pass
+                        
+                        # Check for Figure marker
+                        elif '__FIGURE_MARKER_' in line:
+                            try:
+                                fig_idx = int(line.split('__FIGURE_MARKER_')[1].split('__')[0])
+                                if fig_idx < len(figures):
+                                    # Add the figure image
+                                    img_path = figures[fig_idx]
+                                    if os.path.exists(img_path):
+                                        story.append(Spacer(1, 0.2*cm))
+                                        # Scale image to fit page width (max 15cm)
+                                        img = Image(img_path, width=15*cm, height=10*cm, kind='proportional')
+                                        story.append(img)
+                                        story.append(Spacer(1, 0.2*cm))
+                            except (ValueError, IndexError, Exception):
+                                pass
+                        
+                        # Regular output line
                         else:
-                            # Extract DataFrame index and remaining text
-                            if '__' in part:
-                                df_idx_str, remaining = part.split('__', 1)
-                                try:
-                                    df_idx = int(df_idx_str)
-                                    if df_idx < len(dataframes):
-                                        # Add the DataFrame as a table
-                                        story.append(Spacer(1, 0.1*cm))
-                                        table, truncated = dataframe_to_table(dataframes[df_idx])
-                                        story.append(table)
-                                        if truncated:
-                                            story.append(Paragraph(f"<i>... (showing first 50 rows)</i>", styles['Italic']))
-                                        story.append(Spacer(1, 0.1*cm))
-                                        
-                                        # Add remaining text after this DataFrame
-                                        if remaining.strip():
-                                            for line in remaining.split('\n'):
-                                                if line.strip():
-                                                    safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
-                                                    story.append(Preformatted(safe_line, output_style))
-                                except (ValueError, IndexError):
-                                    # If parsing fails, just show as text
-                                    safe_line = part.replace('<', '&lt;').replace('>', '&gt;')
-                                    story.append(Preformatted(safe_line, output_style))
+                            safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
+                            if safe_line:
+                                story.append(Preformatted(safe_line, output_style))
                 
-                # If no DataFrames, just show text output
+                # If no DataFrames or Figures, just show text output
                 elif result.get('output'):
                     output_lines = result['output'].split('\n')
                     for line in output_lines[:100]:  # Limit output lines
@@ -704,6 +744,17 @@ def create_pdf(notebook_path, output_path, config):
     
     # Build PDF with page numbers
     doc.build(story, canvasmaker=NumberedCanvas)
+    
+    # Clean up temporary figure files
+    for result in results:
+        if result.get('figures'):
+            for fig_path in result['figures']:
+                try:
+                    if os.path.exists(fig_path):
+                        os.unlink(fig_path)
+                except:
+                    pass  # Ignore cleanup errors
+    
     print(f"✅ PDF created successfully: {output_path}")
 
 
