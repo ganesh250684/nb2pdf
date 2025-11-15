@@ -114,9 +114,11 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
                     // Ignore cleanup errors
                 }
 
-                // Show success message
+                // Show success message with file size
+                const stats = fs.statSync(outputPath);
+                const fileSizeKB = (stats.size / 1024).toFixed(2);
                 const openPdf = await vscode.window.showInformationMessage(
-                    `✅ PDF created: ${path.basename(outputPath)}`,
+                    `✅ PDF created successfully: ${path.basename(outputPath)} (${fileSizeKB} KB)`,
                     'Open PDF',
                     'Show in Explorer'
                 );
@@ -135,7 +137,29 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
                     // Ignore
                 }
                 
-                // Handle errors with detailed messages
+                // IMPORTANT: Check if PDF was actually created despite stderr output
+                // Sometimes warnings go to stderr but PDF is still generated successfully
+                if (fs.existsSync(outputPath)) {
+                    const stats = fs.statSync(outputPath);
+                    if (stats.size > 0) {
+                        // PDF was created successfully despite stderr warnings
+                        const fileSizeKB = (stats.size / 1024).toFixed(2);
+                        const openPdf = await vscode.window.showInformationMessage(
+                            `✅ PDF created successfully: ${path.basename(outputPath)} (${fileSizeKB} KB)\n\n(Note: Some warnings were generated but PDF is complete)`,
+                            'Open PDF',
+                            'Show in Explorer'
+                        );
+
+                        if (openPdf === 'Open PDF') {
+                            vscode.env.openExternal(vscode.Uri.file(outputPath));
+                        } else if (openPdf === 'Show in Explorer') {
+                            vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
+                        }
+                        return; // Exit - don't show error
+                    }
+                }
+                
+                // Only show error if PDF wasn't created or is empty
                 handleConversionError(error, notebookPath);
             }
         });

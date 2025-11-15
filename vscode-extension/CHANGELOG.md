@@ -2,6 +2,20 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.5] - 2024-01-XX
+
+### 🐛 Fixed
+- **False error reporting** - Extension now checks if PDF was actually created before showing error message
+- When warnings appear in stderr but PDF is generated successfully, shows success message instead of error
+- Improved success messages with file size confirmation (e.g., "PDF created successfully: output.pdf (245.67 KB)")
+- Users no longer see confusing errors when PDF generation completes successfully
+
+### 🎯 Improved
+- Better feedback when PDF is created despite warnings
+- File size shown in success message for confirmation
+
+---
+
 ## [1.1.4] - 2024-01-XX
 
 ### 🐛 Fixed
