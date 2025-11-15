@@ -2,6 +2,18 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.1] - 2024-01-XX
+
+### 🐛 Fixed
+- **Windows emoji encoding crash** - Replaced emoji characters (📓⚙️✅❌) with ASCII alternatives ([*], [SUCCESS], [ERROR])
+- UnicodeEncodeError on Windows consoles using cp1252 encoding
+- Script now works on all Windows PowerShell, CMD, and terminal configurations
+
+### 📦 Updated
+- Bundled nb2pdf.py script with encoding fixes
+
+---
+
 ## [1.1.0] - 2024-01-XX
 
 ### ✨ Added
