@@ -2,7 +2,7 @@
   "name": "nb2pdf",
   "displayName": "nb2pdf - Notebook to PDF",
   "description": "Convert Jupyter Notebooks to beautiful, professional PDFs with syntax highlighting, DataFrames, and graphs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "ganeshkumbhar",
   "repository": {
     "type": "git",
@@ -48,6 +48,12 @@
         "title": "Configure Student Information",
         "category": "nb2pdf",
         "icon": "$(account)"
+      },
+      {
+        "command": "nb2pdf.checkDependencies",
+        "title": "Check Dependencies",
+        "category": "nb2pdf",
+        "icon": "$(check)"
       }
     ],
     "menus": {

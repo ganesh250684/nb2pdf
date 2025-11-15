@@ -1,0 +1,43 @@
+📢 **Quick Fix for nb2pdf Extension Error**
+
+Hey everyone! If you're getting this error when using the nb2pdf extension:
+❌ *"nb2pdf.py script error! Please reinstall the extension"*
+
+**DON'T REINSTALL!** Just run this command instead:
+
+```
+pip install reportlab
+```
+
+Then reload VS Code (Ctrl+Shift+P → "Reload Window") and try again! ✅
+
+---
+
+**Why this happens:**
+The extension needs a Python library called "reportlab" to create PDFs, but it wasn't installed on your system.
+
+**Good news!** I've already published an updated version (v1.1.0) that:
+- Checks for reportlab BEFORE converting
+- Shows a clear error message
+- Offers an "Install Now" button
+- Provides step-by-step installation guide
+
+**To get the update:**
+Open Extensions in VS Code → Search "nb2pdf" → Click "Update"
+
+---
+
+**Still not working?**
+Try these alternatives:
+```
+python -m pip install reportlab
+```
+OR
+```
+pip install --user reportlab
+```
+
+Need more help? Check the full guide:
+https://github.com/ganesh250684/nb2pdf/blob/main/EXTENSION_ERROR_FIX.md
+
+Happy converting! 📄✨

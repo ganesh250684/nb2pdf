@@ -62,7 +62,7 @@ pip install reportlab
 pip install pandas matplotlib numpy
 ```
 
-The extension will detect missing dependencies and offer to install them.
+✨ **NEW in v1.1.0**: The extension now **checks dependencies before converting** and offers to install them automatically!
 
 **That's it!** The `nb2pdf.py` script is bundled with the extension - no manual setup needed!
 
@@ -82,6 +82,7 @@ This extension contributes the following settings:
 * `nb2pdf: Convert Notebook to PDF` - Convert current/selected notebook
 * `nb2pdf: Convert to PDF with Custom Name` - Specify custom output filename
 * `nb2pdf: Configure Student Information` - Set up your student details
+* `nb2pdf: Check Dependencies` - ✨ **NEW!** Verify Python and reportlab installation
 
 ## How It Works
 
@@ -97,24 +98,47 @@ This extension contributes the following settings:
 
 ## Troubleshooting
 
-### "No module named 'reportlab'"
+### 🚨 Getting "script error" message?
+
+**Don't reinstall the extension!** The issue is likely a missing Python library.
+
+**Quick fix:**
 ```bash
 pip install reportlab
 ```
 
-### "No module named 'matplotlib'" or "pandas"
+Then reload VS Code: `Ctrl+Shift+P` → "Reload Window"
+
+✨ **Tip**: Run `nb2pdf: Check Dependencies` command to verify your setup!
+
+---
+
+### Common Issues
+
+**"Missing required library: reportlab"**
+```bash
+pip install reportlab
+```
+
+**"No module named 'matplotlib'" or "pandas"**
 ```bash
 pip install matplotlib pandas
 ```
 
-### Python not found
-- Set `nb2pdf.pythonPath` in settings
-- Or ensure Python is in your PATH
+**"Python not found"**
+- Set `nb2pdf.pythonPath` in VS Code settings
+- Or ensure Python is in your system PATH
+- Download Python 3.8+: https://www.python.org/downloads/
 
-### Extension not working
-- Ensure Python 3.8+ is installed
-- Make sure you have `reportlab` installed: `pip install reportlab`
-- Check VS Code output panel for detailed errors
+**Permission denied when installing**
+```bash
+pip install --user reportlab
+```
+
+**Still not working?**
+- Check full troubleshooting guide: [EXTENSION_ERROR_FIX.md](https://github.com/ganesh250684/nb2pdf/blob/main/EXTENSION_ERROR_FIX.md)
+- Run `nb2pdf: Check Dependencies` to see detailed status
+- Check VS Code Output panel for errors
 
 ## What's Included in PDFs
 
@@ -133,6 +157,26 @@ pip install matplotlib pandas
 - Very large outputs are truncated at 1MB
 
 ## Release Notes
+
+### 1.1.0 - Improved Error Handling 🔧
+
+**Fixed the confusing "script error" message!**
+
+- ✅ Proactive dependency checking before conversion
+- ✅ New command: "Check Dependencies" to verify setup
+- ✅ Auto-install option for missing libraries
+- ✅ Interactive installation guide with step-by-step instructions
+- ✅ Better error messages that tell you exactly what's wrong
+- ✅ Links to troubleshooting documentation
+- ✅ Automatic temp file cleanup
+- ✅ 60-second timeout protection
+
+**What changed?**
+Previously, if `reportlab` wasn't installed, you'd see a confusing "script error! Please reinstall" message. Now, the extension checks dependencies FIRST and shows helpful messages like "Missing required library: reportlab" with an "Install Now" button!
+
+See full changelog: [CHANGELOG.md](https://github.com/ganesh250684/nb2pdf/blob/main/vscode-extension/CHANGELOG.md)
+
+---
 
 ### 1.0.0
 

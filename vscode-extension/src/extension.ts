@@ -7,7 +7,7 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('nb2pdf extension is now active');
+    console.log('nb2pdf extension is now active (v1.1.0)');
 
     // Register convert notebook command
     let convertCommand = vscode.commands.registerCommand('nb2pdf.convertNotebook', async (uri?: vscode.Uri) => {
@@ -24,19 +24,30 @@ export function activate(context: vscode.ExtensionContext) {
         await configureStudentInfo();
     });
 
-    context.subscriptions.push(convertCommand, convertCustomCommand, configureCommand);
+    // Register check dependencies command
+    let checkDepsCommand = vscode.commands.registerCommand('nb2pdf.checkDependencies', async () => {
+        await checkDependencies(true);
+    });
+
+    context.subscriptions.push(convertCommand, convertCustomCommand, configureCommand, checkDepsCommand);
 }
 
 async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = false) {
     try {
-        // Get the notebook file path
+        // Step 1: Check dependencies FIRST
+        const depsOk = await checkDependencies(false);
+        if (!depsOk) {
+            return; // User will see error from checkDependencies
+        }
+
+        // Step 2: Get the notebook file path
         const notebookPath = await getNotebookPath(uri);
         if (!notebookPath) {
             vscode.window.showErrorMessage('No notebook file selected');
             return;
         }
 
-        // Get output path
+        // Step 3: Get output path
         let outputPath = notebookPath.replace('.ipynb', '.pdf');
         if (customName) {
             const customOutput = await vscode.window.showInputBox({
@@ -53,27 +64,30 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
             }
         }
 
-        // Get nb2pdf.py path (bundled with extension or in workspace)
+        // Step 4: Get nb2pdf.py path (bundled with extension or in workspace)
         const nb2pdfScript = await findNb2pdfScript();
         if (!nb2pdfScript) {
             vscode.window.showErrorMessage(
-                'nb2pdf.py script error! Please reinstall the extension.',
-                'Reinstall Extension'
+                '❌ nb2pdf.py script not found. Extension may be corrupted.',
+                'Reinstall Extension',
+                'Get Help'
             ).then(selection => {
                 if (selection === 'Reinstall Extension') {
                     vscode.env.openExternal(vscode.Uri.parse('https://marketplace.visualstudio.com/items?itemName=ganesh-kumbhar.nb2pdf'));
+                } else if (selection === 'Get Help') {
+                    vscode.env.openExternal(vscode.Uri.parse('https://github.com/ganesh250684/nb2pdf/issues'));
                 }
             });
             return;
         }
 
-        // Create student_info.json from settings
+        // Step 5: Create student_info.json from settings
         const configPath = await createStudentInfoFile();
 
-        // Get Python path
+        // Step 6: Get Python path
         const pythonPath = await getPythonPath();
 
-        // Show progress
+        // Step 7: Show progress
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: 'Converting notebook to PDF',
@@ -87,10 +101,18 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
             try {
                 // Execute nb2pdf
                 const { stdout, stderr } = await execAsync(cmd, {
-                    cwd: path.dirname(nb2pdfScript)
+                    cwd: path.dirname(nb2pdfScript),
+                    timeout: 60000 // 60 second timeout
                 });
 
                 progress.report({ message: 'PDF generated successfully!' });
+
+                // Clean up temp config
+                try {
+                    fs.unlinkSync(configPath);
+                } catch (e) {
+                    // Ignore cleanup errors
+                }
 
                 // Show success message
                 const openPdf = await vscode.window.showInformationMessage(
@@ -100,23 +122,177 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
                 );
 
                 if (openPdf === 'Open PDF') {
-                    const config = vscode.workspace.getConfiguration('nb2pdf');
-                    if (config.get('autoOpenPdf')) {
-                        vscode.env.openExternal(vscode.Uri.file(outputPath));
-                    }
+                    vscode.env.openExternal(vscode.Uri.file(outputPath));
                 } else if (openPdf === 'Show in Explorer') {
                     vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
                 }
 
             } catch (error: any) {
-                // Handle errors
-                handleConversionError(error);
+                // Clean up temp config
+                try {
+                    fs.unlinkSync(configPath);
+                } catch (e) {
+                    // Ignore
+                }
+                
+                // Handle errors with detailed messages
+                handleConversionError(error, notebookPath);
             }
         });
 
     } catch (error: any) {
         vscode.window.showErrorMessage(`nb2pdf error: ${error.message}`);
     }
+}
+
+/**
+ * Check if all required dependencies are installed
+ */
+async function checkDependencies(showSuccess: boolean = false): Promise<boolean> {
+    try {
+        const pythonPath = await getPythonPath();
+        
+        // Check 1: Python is available
+        try {
+            await execAsync(`"${pythonPath}" --version`);
+        } catch (error) {
+            vscode.window.showErrorMessage(
+                '❌ Python not found! Please install Python 3.8 or higher.',
+                'Download Python',
+                'Configure Path'
+            ).then(selection => {
+                if (selection === 'Download Python') {
+                    vscode.env.openExternal(vscode.Uri.parse('https://www.python.org/downloads/'));
+                } else if (selection === 'Configure Path') {
+                    vscode.commands.executeCommand('workbench.action.openSettings', 'nb2pdf.pythonPath');
+                }
+            });
+            return false;
+        }
+
+        // Check 2: reportlab is installed
+        try {
+            const { stdout, stderr } = await execAsync(`"${pythonPath}" -c "import reportlab; print(reportlab.Version)"`);
+            const version = stdout.trim();
+            
+            if (showSuccess) {
+                vscode.window.showInformationMessage(
+                    `✅ All dependencies OK!\n\nPython: ${pythonPath}\nreportlab: ${version}`
+                );
+            }
+            return true;
+            
+        } catch (error) {
+            // reportlab not installed - show helpful error
+            const result = await vscode.window.showErrorMessage(
+                '❌ Missing required library: reportlab\n\nThis Python library is required to generate PDFs.',
+                'Install Now',
+                'Manual Install',
+                'Learn More'
+            );
+
+            if (result === 'Install Now') {
+                // Auto-install reportlab
+                const terminal = vscode.window.createTerminal('nb2pdf - Installing reportlab');
+                terminal.show();
+                terminal.sendText(`${pythonPath} -m pip install reportlab`);
+                
+                vscode.window.showInformationMessage(
+                    '⏳ Installing reportlab... Please wait for installation to complete, then try again.',
+                    'OK'
+                );
+            } else if (result === 'Manual Install') {
+                // Show manual install instructions
+                showManualInstallInstructions();
+            } else if (result === 'Learn More') {
+                vscode.env.openExternal(vscode.Uri.parse('https://github.com/ganesh250684/nb2pdf#installation'));
+            }
+            
+            return false;
+        }
+
+    } catch (error: any) {
+        vscode.window.showErrorMessage(`Dependency check failed: ${error.message}`);
+        return false;
+    }
+}
+
+/**
+ * Show manual installation instructions
+ */
+function showManualInstallInstructions() {
+    const panel = vscode.window.createWebviewPanel(
+        'nb2pdfInstall',
+        'Install nb2pdf Dependencies',
+        vscode.ViewColumn.One,
+        {}
+    );
+
+    panel.webview.html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+        code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+        pre { background: #2d2d2d; color: #f8f8f8; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #007acc; background: #f8f8f8; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        h1 { color: #007acc; }
+        h2 { color: #333; }
+    </style>
+</head>
+<body>
+    <h1>📦 Install nb2pdf Dependencies</h1>
+    
+    <div class="step">
+        <h2>Step 1: Open Terminal</h2>
+        <p>Open PowerShell, Command Prompt, or VS Code Terminal</p>
+    </div>
+
+    <div class="step">
+        <h2>Step 2: Run Install Command</h2>
+        <pre>pip install reportlab</pre>
+        <p><strong>OR</strong> if you have multiple Python versions:</p>
+        <pre>python -m pip install reportlab</pre>
+    </div>
+
+    <div class="step">
+        <h2>Step 3: Verify Installation</h2>
+        <pre>python -c "import reportlab; print('✅ Success!')"</pre>
+        <p>You should see: <code class="success">✅ Success!</code></p>
+    </div>
+
+    <div class="step">
+        <h2>Step 4: Reload VS Code</h2>
+        <p>Press <code>Ctrl+Shift+P</code> → Type "Reload Window" → Press Enter</p>
+    </div>
+
+    <h2>🐛 Troubleshooting</h2>
+    
+    <div class="step">
+        <h3>Error: "pip is not recognized"</h3>
+        <p>Solution:</p>
+        <pre>python -m pip install reportlab</pre>
+    </div>
+
+    <div class="step">
+        <h3>Error: "Permission denied"</h3>
+        <p>Solution (Run as Administrator or use --user flag):</p>
+        <pre>pip install --user reportlab</pre>
+    </div>
+
+    <div class="step">
+        <h3>Still not working?</h3>
+        <p>Check the full troubleshooting guide:</p>
+        <p><a href="https://github.com/ganesh250684/nb2pdf#troubleshooting">nb2pdf Troubleshooting Guide</a></p>
+    </div>
+
+    <p><strong>💡 Tip:</strong> After installation, run "nb2pdf: Check Dependencies" command to verify everything is working!</p>
+</body>
+</html>
+    `;
 }
 
 async function getNotebookPath(uri?: vscode.Uri): Promise<string | undefined> {
@@ -261,45 +437,79 @@ async function configureStudentInfo() {
     vscode.window.showInformationMessage('✅ Student information updated!');
 }
 
-function handleConversionError(error: any) {
+function handleConversionError(error: any, notebookPath: string) {
     const errorMsg = error.message || error.toString();
     
-    // Check for common errors
+    // Check for specific error patterns
     if (errorMsg.includes('ModuleNotFoundError') || errorMsg.includes('No module named')) {
-        const moduleName = errorMsg.match(/No module named ['"]([^'"]+)['"]/)?.[1] || 'required module';
+        const moduleName = errorMsg.match(/No module named ['"]([^'"]+)['"]/)?.[1] || 'reportlab';
         vscode.window.showErrorMessage(
-            `Missing Python dependency: ${moduleName}`,
-            'Install Dependencies',
-            'View Docs'
+            `❌ Missing Python library: ${moduleName}\n\nRequired for PDF generation.`,
+            'Install ' + moduleName,
+            'Troubleshooting Guide'
         ).then(selection => {
-            if (selection === 'Install Dependencies') {
+            if (selection === 'Install ' + moduleName) {
                 const terminal = vscode.window.createTerminal('nb2pdf - Install Dependencies');
                 terminal.show();
                 terminal.sendText(`pip install ${moduleName}`);
-            } else if (selection === 'View Docs') {
-                vscode.env.openExternal(vscode.Uri.parse('https://github.com/ganesh250684/nb2pdf#readme'));
+            } else if (selection === 'Troubleshooting Guide') {
+                vscode.env.openExternal(vscode.Uri.parse('https://github.com/ganesh250684/nb2pdf/blob/main/EXTENSION_ERROR_FIX.md'));
             }
         });
-    } else if (errorMsg.includes('python') && errorMsg.includes('not found')) {
+    } else if (errorMsg.includes('SyntaxError') || errorMsg.includes('IndentationError')) {
         vscode.window.showErrorMessage(
-            'Python not found! Please install Python or configure the path.',
-            'Open Settings'
+            `❌ Syntax error in notebook: ${path.basename(notebookPath)}\n\nPlease fix Python errors in your notebook first.`,
+            'Open Notebook'
         ).then(selection => {
-            if (selection === 'Open Settings') {
+            if (selection === 'Open Notebook') {
+                vscode.commands.executeCommand('vscode.open', vscode.Uri.file(notebookPath));
+            }
+        });
+    } else if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
+        vscode.window.showErrorMessage(
+            '❌ Conversion timed out\n\nYour notebook may have cells that take too long to execute.',
+            'View Notebook'
+        ).then(selection => {
+            if (selection === 'View Notebook') {
+                vscode.commands.executeCommand('vscode.open', vscode.Uri.file(notebookPath));
+            }
+        });
+    } else if (errorMsg.toLowerCase().includes('python') && (errorMsg.includes('not found') || errorMsg.includes('not recognized'))) {
+        vscode.window.showErrorMessage(
+            '❌ Python not found!\n\nPlease install Python 3.8+ or configure the path.',
+            'Download Python',
+            'Configure Path'
+        ).then(selection => {
+            if (selection === 'Download Python') {
+                vscode.env.openExternal(vscode.Uri.parse('https://www.python.org/downloads/'));
+            } else if (selection === 'Configure Path') {
                 vscode.commands.executeCommand('workbench.action.openSettings', 'nb2pdf.pythonPath');
             }
         });
     } else {
-        // Generic error
+        // Generic error with detailed output
+        const outputChannel = vscode.window.createOutputChannel('nb2pdf Error Details');
+        outputChannel.appendLine('='.repeat(50));
+        outputChannel.appendLine('nb2pdf Conversion Error');
+        outputChannel.appendLine('='.repeat(50));
+        outputChannel.appendLine(`Notebook: ${notebookPath}`);
+        outputChannel.appendLine(`Time: ${new Date().toISOString()}`);
+        outputChannel.appendLine('');
+        outputChannel.appendLine('Error Details:');
+        outputChannel.appendLine(errorMsg);
+        outputChannel.appendLine('');
+        outputChannel.appendLine('='.repeat(50));
+        outputChannel.show();
+
         vscode.window.showErrorMessage(
-            `Conversion failed: ${errorMsg}`,
-            'View Output'
+            `❌ Conversion failed\n\nSee Output panel for details.`,
+            'View Output',
+            'Get Help'
         ).then(selection => {
             if (selection === 'View Output') {
-                // Could show detailed output in a channel
-                const outputChannel = vscode.window.createOutputChannel('nb2pdf');
-                outputChannel.appendLine(errorMsg);
                 outputChannel.show();
+            } else if (selection === 'Get Help') {
+                vscode.env.openExternal(vscode.Uri.parse('https://github.com/ganesh250684/nb2pdf/issues'));
             }
         });
     }

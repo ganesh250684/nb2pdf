@@ -17,15 +17,13 @@ import sys
 import io
 import argparse
 import re
-import tempfile
-import os
 from pathlib import Path
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Preformatted, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Preformatted
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfgen import canvas
 
@@ -273,9 +271,6 @@ def execute_notebook(notebook_path):
     # Storage for captured DataFrames with their position in output
     captured_dataframes = []
     
-    # Storage for captured plots/figures
-    captured_figures = []
-    
     # Custom display function
     def display(obj):
         try:
@@ -293,43 +288,12 @@ def execute_notebook(notebook_path):
     
     glb['display'] = display
     
-    # Custom plt.show() wrapper to capture figures
-    original_show = None
-    def custom_show():
-        """Capture matplotlib figures when plt.show() is called"""
-        try:
-            import matplotlib.pyplot as plt
-            # Get all current figures
-            figs = [plt.figure(n) for n in plt.get_fignums()]
-            for fig in figs:
-                # Save figure to temporary file
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-                fig.savefig(temp_file.name, format='png', dpi=150, bbox_inches='tight')
-                captured_figures.append(temp_file.name)
-                temp_file.close()
-                print(f"__FIGURE_MARKER_{len(captured_figures) - 1}__")
-            
-            # Close figures to prevent display
-            plt.close('all')
-        except Exception as e:
-            pass
-    
-    # Try to patch matplotlib's show function if it's imported
-    try:
-        import matplotlib.pyplot as plt
-        original_show = plt.show
-        plt.show = custom_show
-        glb['plt'] = plt  # Make patched plt available
-    except ImportError:
-        pass  # matplotlib not available, that's ok
-    
     for idx, cell in enumerate(cells, 1):
         cell_type = cell.get('cell_type')
         source = ''.join(cell.get('source', []))
         
         # Reset DataFrame capture for each cell
         captured_dataframes.clear()
-        captured_figures.clear()
         
         cell_result = {
             'index': idx,
@@ -337,12 +301,11 @@ def execute_notebook(notebook_path):
             'source': source,
             'output': '',
             'error': None,
-            'dataframes': [],
-            'figures': []
+            'dataframes': []
         }
         
         if cell_type == 'code':
-            # Capture stdout and stderr with size limits
+            # Capture stdout and stderr
             old_stdout = sys.stdout
             old_stderr = sys.stderr
             buf_out = io.StringIO()
@@ -350,54 +313,8 @@ def execute_notebook(notebook_path):
             sys.stdout = buf_out
             sys.stderr = buf_err
             
-            # Track output size to prevent memory issues
-            max_output_size = 1_000_000  # 1MB limit
-            
-            result_value = None
             try:
-                # Execute the code and try to capture the last expression result
-                code_lines = source.strip().split('\n')
-                
-                if not code_lines or not source.strip():
-                    # Empty cell, skip
-                    pass
-                else:
-                    # Check if the last line could be an expression
-                    last_line = code_lines[-1].strip()
-                    
-                    # Skip expression evaluation for these patterns
-                    skip_patterns = ('#', 'import ', 'from ', 'def ', 'class ', 'if ', 'for ', 
-                                   'while ', 'with ', 'try:', 'except', 'finally:', 'else:', 
-                                   'elif ', 'return', 'pass', 'break', 'continue', 'raise',
-                                   'assert', 'del ', 'global ', 'nonlocal ', 'yield', 'async ')
-                    
-                    is_statement = any(last_line.startswith(p) for p in skip_patterns) or \
-                                  last_line.endswith(':') or '=' in last_line.split('#')[0]
-                    
-                    if len(code_lines) == 1 and not is_statement:
-                        # Single line that might be an expression
-                        try:
-                            result_value = eval(last_line, glb)
-                        except:
-                            # Not an expression, execute as statement
-                            exec(last_line, glb)
-                    else:
-                        # Multiple lines or definitely a statement
-                        # Execute all but the last line first
-                        if len(code_lines) > 1:
-                            exec('\n'.join(code_lines[:-1]), glb)
-                        
-                        # Try to eval the last line if it might be an expression
-                        if not is_statement and last_line:
-                            try:
-                                result_value = eval(last_line, glb)
-                            except:
-                                # Execute as statement
-                                exec(last_line, glb)
-                        else:
-                            # Execute the last line as a statement
-                            if last_line:
-                                exec(last_line, glb)
+                exec(source, glb)
             except Exception as e:
                 import traceback
                 cell_result['error'] = traceback.format_exc()
@@ -405,58 +322,8 @@ def execute_notebook(notebook_path):
                 sys.stdout = old_stdout
                 sys.stderr = old_stderr
             
-            # Safely get output with size check
-            try:
-                if buf_out.tell() > max_output_size:
-                    output = "[Output truncated - exceeded 1MB limit]\n"
-                else:
-                    output = buf_out.getvalue()
-                    
-                if buf_err.tell() > max_output_size:
-                    errors = "[Error output truncated - exceeded 1MB limit]\n"
-                else:
-                    errors = buf_err.getvalue()
-            except MemoryError:
-                output = "[Output too large - memory error]\n"
-                errors = ""
-            
-            # Add the result value if it exists and isn't None
-            if result_value is not None:
-                try:
-                    import pandas as pd
-                    # Check if it's a DataFrame
-                    if isinstance(result_value, pd.DataFrame):
-                        # Add DataFrame to the list
-                        captured_dataframes.append(result_value)
-                        output += f"__DATAFRAME_MARKER_{len(captured_dataframes) - 1}__\n"
-                    else:
-                        # Try to detect matplotlib figure
-                        try:
-                            import matplotlib
-                            if isinstance(result_value, matplotlib.figure.Figure):
-                                # Save the figure (we'll add image support later)
-                                output += "[Matplotlib Figure - graph display not yet supported]\n"
-                            else:
-                                # Safe repr with size limit
-                                result_repr = repr(result_value)
-                                if len(result_repr) > 5000:  # Limit to 5000 chars
-                                    result_repr = result_repr[:5000] + "... (output truncated)"
-                                output += result_repr + '\n'
-                        except ImportError:
-                            # matplotlib not available, use safe repr
-                            result_repr = repr(result_value)
-                            if len(result_repr) > 5000:
-                                result_repr = result_repr[:5000] + "... (output truncated)"
-                            output += result_repr + '\n'
-                except Exception as e:
-                    # Fallback for any errors
-                    try:
-                        result_repr = str(result_value)
-                        if len(result_repr) > 5000:
-                            result_repr = result_repr[:5000] + "... (output truncated)"
-                        output += result_repr + '\n'
-                    except:
-                        output += "[Output could not be displayed]\n"
+            output = buf_out.getvalue()
+            errors = buf_err.getvalue()
             
             if output:
                 cell_result['output'] = output
@@ -466,10 +333,6 @@ def execute_notebook(notebook_path):
             # Store captured DataFrames
             if captured_dataframes:
                 cell_result['dataframes'] = [df.copy() for df in captured_dataframes]
-            
-            # Store captured figures
-            if captured_figures:
-                cell_result['figures'] = captured_figures.copy()
         
         results.append(cell_result)
     
@@ -538,14 +401,14 @@ def dataframe_to_table(df, max_rows=50):
 
 def create_pdf(notebook_path, output_path, config):
     """Create PDF from notebook execution results"""
-    print(f"Loading notebook: {notebook_path}")
+    print(f"[*] Loading notebook: {notebook_path}")
     
     # Execute notebook
-    print("Executing cells...")
+    print("[*] Executing cells...")
     results = execute_notebook(notebook_path)
     
     # Create PDF
-    print(f"Generating PDF: {output_path}")
+    print(f"[*] Generating PDF: {output_path}")
     doc = SimpleDocTemplate(
         str(output_path),
         pagesize=A4,
@@ -563,10 +426,9 @@ def create_pdf(notebook_path, output_path, config):
         parent=styles['Code'],
         fontSize=9,
         fontName='Courier',
-        leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
-        textColor=colors.HexColor('#000000'),  # Pure black for better visibility
+        textColor=colors.HexColor('#1a1a1a'),
         backColor=colors.HexColor('#f5f5f5'),
         borderPadding=5,
         spaceBefore=5,
@@ -578,10 +440,9 @@ def create_pdf(notebook_path, output_path, config):
         parent=styles['Code'],
         fontSize=9,
         fontName='Courier',
-        leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
-        textColor=colors.HexColor('#1b5e20'),  # Darker green for better visibility
+        textColor=colors.HexColor('#2e7d32'),
         backColor=colors.HexColor('#e8f5e9'),
         borderPadding=5,
         spaceBefore=5,
@@ -593,10 +454,9 @@ def create_pdf(notebook_path, output_path, config):
         parent=styles['Code'],
         fontSize=9,
         fontName='Courier',
-        leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
-        textColor=colors.HexColor('#b71c1c'),  # Darker red for better visibility
+        textColor=colors.HexColor('#c62828'),
         backColor=colors.HexColor('#ffebee'),
         borderPadding=5
     )
@@ -626,7 +486,7 @@ def create_pdf(notebook_path, output_path, config):
     # Add cells
     for result in results:
         # Cell header
-        cell_type_label = "Markdown" if result['type'] == 'markdown' else "Code"
+        cell_type_label = "📝 Markdown" if result['type'] == 'markdown' else "💻 Code"
         header_text = f"Cell {result['index']}: {cell_type_label}"
         story.append(Paragraph(header_text, cell_header_style))
         
@@ -672,57 +532,49 @@ def create_pdf(notebook_path, output_path, config):
                 story.append(Paragraph("<b>Output:</b>", styles['Normal']))
                 story.append(Spacer(1, 0.1*cm))
                 
-                # Process output with DataFrames and Figures
-                if result.get('dataframes') or result.get('figures'):
+                # If we have DataFrames, split output by markers and insert tables
+                if result.get('dataframes'):
                     output_text = result.get('output', '')
-                    dataframes = result.get('dataframes', [])
-                    figures = result.get('figures', [])
+                    dataframes = result['dataframes']
                     
-                    # Split by both DataFrame and Figure markers
-                    lines = output_text.split('\n')
+                    # Split by DataFrame markers
+                    parts = output_text.split('__DATAFRAME_MARKER_')
                     
-                    for line in lines:
-                        line = line.strip()
-                        if not line:
-                            continue
-                            
-                        # Check for DataFrame marker
-                        if '__DATAFRAME_MARKER_' in line:
-                            try:
-                                df_idx = int(line.split('__DATAFRAME_MARKER_')[1].split('__')[0])
-                                if df_idx < len(dataframes):
-                                    story.append(Spacer(1, 0.1*cm))
-                                    table, truncated = dataframe_to_table(dataframes[df_idx])
-                                    story.append(table)
-                                    if truncated:
-                                        story.append(Paragraph(f"<i>... (showing first 50 rows)</i>", styles['Italic']))
-                                    story.append(Spacer(1, 0.1*cm))
-                            except (ValueError, IndexError):
-                                pass
-                        
-                        # Check for Figure marker
-                        elif '__FIGURE_MARKER_' in line:
-                            try:
-                                fig_idx = int(line.split('__FIGURE_MARKER_')[1].split('__')[0])
-                                if fig_idx < len(figures):
-                                    # Add the figure image
-                                    img_path = figures[fig_idx]
-                                    if os.path.exists(img_path):
-                                        story.append(Spacer(1, 0.2*cm))
-                                        # Scale image to fit page width (max 15cm)
-                                        img = Image(img_path, width=15*cm, height=10*cm, kind='proportional')
-                                        story.append(img)
-                                        story.append(Spacer(1, 0.2*cm))
-                            except (ValueError, IndexError, Exception):
-                                pass
-                        
-                        # Regular output line
+                    for i, part in enumerate(parts):
+                        # First part is text before first DataFrame
+                        if i == 0:
+                            if part.strip():
+                                for line in part.split('\n'):
+                                    if line.strip():
+                                        safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
+                                        story.append(Preformatted(safe_line, output_style))
                         else:
-                            safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
-                            if safe_line:
-                                story.append(Preformatted(safe_line, output_style))
+                            # Extract DataFrame index and remaining text
+                            if '__' in part:
+                                df_idx_str, remaining = part.split('__', 1)
+                                try:
+                                    df_idx = int(df_idx_str)
+                                    if df_idx < len(dataframes):
+                                        # Add the DataFrame as a table
+                                        story.append(Spacer(1, 0.1*cm))
+                                        table, truncated = dataframe_to_table(dataframes[df_idx])
+                                        story.append(table)
+                                        if truncated:
+                                            story.append(Paragraph(f"<i>... (showing first 50 rows)</i>", styles['Italic']))
+                                        story.append(Spacer(1, 0.1*cm))
+                                        
+                                        # Add remaining text after this DataFrame
+                                        if remaining.strip():
+                                            for line in remaining.split('\n'):
+                                                if line.strip():
+                                                    safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
+                                                    story.append(Preformatted(safe_line, output_style))
+                                except (ValueError, IndexError):
+                                    # If parsing fails, just show as text
+                                    safe_line = part.replace('<', '&lt;').replace('>', '&gt;')
+                                    story.append(Preformatted(safe_line, output_style))
                 
-                # If no DataFrames or Figures, just show text output
+                # If no DataFrames, just show text output
                 elif result.get('output'):
                     output_lines = result['output'].split('\n')
                     for line in output_lines[:100]:  # Limit output lines
@@ -744,18 +596,7 @@ def create_pdf(notebook_path, output_path, config):
     
     # Build PDF with page numbers
     doc.build(story, canvasmaker=NumberedCanvas)
-    
-    # Clean up temporary figure files
-    for result in results:
-        if result.get('figures'):
-            for fig_path in result['figures']:
-                try:
-                    if os.path.exists(fig_path):
-                        os.unlink(fig_path)
-                except:
-                    pass  # Ignore cleanup errors
-    
-    print(f"PDF created successfully: {output_path}")
+    print(f"[SUCCESS] PDF created successfully: {output_path}")
 
 
 def main():
@@ -779,11 +620,11 @@ Examples:
     # Validate notebook path
     notebook_path = Path(args.notebook)
     if not notebook_path.exists():
-        print(f"Error: Notebook not found: {notebook_path}")
+        print(f"[ERROR] Notebook not found: {notebook_path}")
         sys.exit(1)
     
     if not notebook_path.suffix == '.ipynb':
-        print(f"Error: File must be a Jupyter notebook (.ipynb)")
+        print(f"[ERROR] File must be a Jupyter notebook (.ipynb)")
         sys.exit(1)
     
     # Determine output path
@@ -800,7 +641,7 @@ Examples:
     try:
         create_pdf(notebook_path, output_path, config)
     except Exception as e:
-        print(f"Error creating PDF: {e}")
+        print(f"[ERROR] Error creating PDF: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
