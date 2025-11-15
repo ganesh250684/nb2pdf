@@ -313,8 +313,28 @@ def execute_notebook(notebook_path):
             sys.stdout = buf_out
             sys.stderr = buf_err
             
+            result_value = None
             try:
-                exec(source, glb)
+                # Execute the code and capture the last expression result
+                # Split into statements to get the last one
+                code_lines = source.strip().split('\n')
+                if code_lines:
+                    # Execute all but last line as statements
+                    if len(code_lines) > 1:
+                        exec('\n'.join(code_lines[:-1]), glb)
+                    
+                    # Try to evaluate the last line as an expression
+                    last_line = code_lines[-1].strip()
+                    if last_line and not last_line.startswith(('#', 'import', 'from', 'def', 'class', 'if', 'for', 'while', 'with', 'try', 'except', 'finally', 'else', 'elif')):
+                        try:
+                            # Try to eval the last line to capture its result
+                            result_value = eval(last_line, glb)
+                        except:
+                            # If eval fails, execute it as a statement
+                            exec(last_line, glb)
+                    else:
+                        # Execute the last line as a statement
+                        exec(last_line, glb)
             except Exception as e:
                 import traceback
                 cell_result['error'] = traceback.format_exc()
@@ -324,6 +344,20 @@ def execute_notebook(notebook_path):
             
             output = buf_out.getvalue()
             errors = buf_err.getvalue()
+            
+            # Add the result value if it exists and isn't None
+            if result_value is not None:
+                try:
+                    import pandas as pd
+                    if isinstance(result_value, pd.DataFrame):
+                        # Add DataFrame to the list
+                        captured_dataframes.append(result_value)
+                        output += f"__DATAFRAME_MARKER_{len(captured_dataframes) - 1}__\n"
+                    else:
+                        # Add the repr of the result
+                        output += repr(result_value) + '\n'
+                except:
+                    output += repr(result_value) + '\n'
             
             if output:
                 cell_result['output'] = output
@@ -429,7 +463,7 @@ def create_pdf(notebook_path, output_path, config):
         leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
-        textColor=colors.HexColor('#1a1a1a'),
+        textColor=colors.HexColor('#000000'),  # Pure black for better visibility
         backColor=colors.HexColor('#f5f5f5'),
         borderPadding=5,
         spaceBefore=5,
@@ -444,7 +478,7 @@ def create_pdf(notebook_path, output_path, config):
         leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
-        textColor=colors.HexColor('#2e7d32'),
+        textColor=colors.HexColor('#1b5e20'),  # Darker green for better visibility
         backColor=colors.HexColor('#e8f5e9'),
         borderPadding=5,
         spaceBefore=5,
@@ -459,7 +493,7 @@ def create_pdf(notebook_path, output_path, config):
         leading=12,  # Line height - prevents text from being cut at bottom
         leftIndent=10,
         rightIndent=10,
-        textColor=colors.HexColor('#c62828'),
+        textColor=colors.HexColor('#b71c1c'),  # Darker red for better visibility
         backColor=colors.HexColor('#ffebee'),
         borderPadding=5
     )
