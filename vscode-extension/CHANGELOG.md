@@ -2,6 +2,20 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.6] - 2024-01-XX
+
+### 🎁 Added
+- **Buy Me a Coffee support option** - Added optional "☕ Buy Me a Coffee" button in success message
+- Appears after successful PDF generation alongside "Open PDF" and "Show in Explorer"
+- Non-intrusive way to support the extension's development
+- Updated README with support section explaining how donations help
+
+### 🎯 Improved
+- Enhanced marketplace description with contribution options
+- Better visibility for project support
+
+---
+
 ## [1.1.5] - 2024-01-XX
 
 ### 🐛 Fixed

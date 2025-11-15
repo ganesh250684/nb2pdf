@@ -120,13 +120,27 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
                 const openPdf = await vscode.window.showInformationMessage(
                     `✅ PDF created successfully: ${path.basename(outputPath)} (${fileSizeKB} KB)`,
                     'Open PDF',
-                    'Show in Explorer'
+                    'Show in Explorer',
+                    '☕ Buy Me a Coffee'
                 );
 
                 if (openPdf === 'Open PDF') {
                     vscode.env.openExternal(vscode.Uri.file(outputPath));
                 } else if (openPdf === 'Show in Explorer') {
                     vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
+                } else if (openPdf === '☕ Buy Me a Coffee') {
+                    vscode.env.openExternal(vscode.Uri.parse('https://www.buymeacoffee.com/ganesh2506'));
+                    // Also show the PDF options after
+                    const showFile = await vscode.window.showInformationMessage(
+                        'Thank you for your support! 💖',
+                        'Open PDF',
+                        'Show in Explorer'
+                    );
+                    if (showFile === 'Open PDF') {
+                        vscode.env.openExternal(vscode.Uri.file(outputPath));
+                    } else if (showFile === 'Show in Explorer') {
+                        vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
+                    }
                 }
 
             } catch (error: any) {
@@ -147,13 +161,26 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
                         const openPdf = await vscode.window.showInformationMessage(
                             `✅ PDF created successfully: ${path.basename(outputPath)} (${fileSizeKB} KB)\n\n(Note: Some warnings were generated but PDF is complete)`,
                             'Open PDF',
-                            'Show in Explorer'
+                            'Show in Explorer',
+                            '☕ Buy Me a Coffee'
                         );
 
                         if (openPdf === 'Open PDF') {
                             vscode.env.openExternal(vscode.Uri.file(outputPath));
                         } else if (openPdf === 'Show in Explorer') {
                             vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
+                        } else if (openPdf === '☕ Buy Me a Coffee') {
+                            vscode.env.openExternal(vscode.Uri.parse('https://www.buymeacoffee.com/ganesh2506'));
+                            const showFile = await vscode.window.showInformationMessage(
+                                'Thank you for your support! 💖',
+                                'Open PDF',
+                                'Show in Explorer'
+                            );
+                            if (showFile === 'Open PDF') {
+                                vscode.env.openExternal(vscode.Uri.file(outputPath));
+                            } else if (showFile === 'Show in Explorer') {
+                                vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputPath));
+                            }
                         }
                         return; // Exit - don't show error
                     }

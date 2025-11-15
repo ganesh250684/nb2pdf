@@ -192,6 +192,28 @@ Initial release of nb2pdf extension:
 Found a bug? Have a feature request?  
 https://github.com/ganesh250684/nb2pdf/issues
 
+## 💖 Support This Extension
+
+If **nb2pdf** saved you hours of manual formatting and helped you submit professional-looking assignments, consider supporting its development:
+
+### ☕ Buy Me a Coffee
+
+Creating and maintaining this extension takes time and effort. Your support helps keep it:
+- ✅ Free forever
+- ✅ Actively maintained with bug fixes
+- ✅ Improved with new features
+- ✅ Compatible with latest VS Code versions
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-yellow.svg?style=for-the-badge)](https://www.buymeacoffee.com/ganesh2506)
+
+**Can't donate?** No problem! You can still help by:
+- ⭐ Giving this extension a 5-star rating
+- 🌟 Starring the [GitHub repo](https://github.com/ganesh250684/nb2pdf)
+- 📢 Sharing it with classmates and colleagues
+- 💬 Leaving a review on the marketplace
+
+Every bit of support (financial or otherwise) motivates me to keep improving this tool for students everywhere! 🙏
+
 ## License
 
 MIT License - Free to use and share!
