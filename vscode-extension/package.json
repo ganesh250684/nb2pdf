@@ -4,7 +4,6 @@
   "description": "Convert Jupyter Notebooks to beautiful, professional PDFs with syntax highlighting, DataFrames, and graphs",
   "version": "1.0.0",
   "publisher": "ganesh-kumbhar",
-  "icon": "images/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/ganesh250684/nb2pdf"

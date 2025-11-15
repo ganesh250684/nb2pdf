@@ -64,10 +64,7 @@ pip install pandas matplotlib numpy
 
 The extension will detect missing dependencies and offer to install them.
 
-### Setup nb2pdf.py
-
-Place `nb2pdf.py` in your workspace root folder. Download it from:
-https://github.com/ganesh250684/nb2pdf
+**That's it!** The `nb2pdf.py` script is bundled with the extension - no manual setup needed!
 
 ## Extension Settings
 
@@ -100,10 +97,6 @@ This extension contributes the following settings:
 
 ## Troubleshooting
 
-### "nb2pdf.py not found"
-- Ensure `nb2pdf.py` is in your workspace root
-- Or download from https://github.com/ganesh250684/nb2pdf
-
 ### "No module named 'reportlab'"
 ```bash
 pip install reportlab
@@ -117,6 +110,11 @@ pip install matplotlib pandas
 ### Python not found
 - Set `nb2pdf.pythonPath` in settings
 - Or ensure Python is in your PATH
+
+### Extension not working
+- Ensure Python 3.8+ is installed
+- Make sure you have `reportlab` installed: `pip install reportlab`
+- Check VS Code output panel for detailed errors
 
 ## What's Included in PDFs
 

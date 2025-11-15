@@ -1,0 +1,810 @@
+#!/usr/bin/env python3
+"""
+Notebook to PDF Converter (nb2pdf)
+A professional tool to convert Jupyter notebooks (.ipynb) to beautifully formatted PDFs.
+
+Usage:
+    python nb2pdf.py <notebook.ipynb>
+    python nb2pdf.py <notebook.ipynb> --output myreport.pdf
+    python nb2pdf.py <notebook.ipynb> --config student_info.json
+
+Author: Generated for IITM students
+License: Free to use and share
+"""
+
+import json
+import sys
+import io
+import argparse
+import re
+import tempfile
+import os
+from pathlib import Path
+from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Preformatted, Image
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.pdfgen import canvas
+
+
+class NumberedCanvas(canvas.Canvas):
+    """Custom canvas to add page numbers"""
+    def __init__(self, *args, **kwargs):
+        canvas.Canvas.__init__(self, *args, **kwargs)
+        self.pages = []
+
+    def showPage(self):
+        self.pages.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        page_count = len(self.pages)
+        for page_num in range(page_count):
+            self.__dict__.update(self.pages[page_num])
+            self.draw_page_number(page_num + 1, page_count)
+            canvas.Canvas.showPage(self)
+        canvas.Canvas.save(self)
+
+    def draw_page_number(self, page_num, page_count):
+        self.setFont("Helvetica", 9)
+        self.drawRightString(
+            A4[0] - 1.5*cm, 1*cm,
+            f"Page {page_num} of {page_count}"
+        )
+
+
+def syntax_highlight_python(code):
+    """Apply VS Code-style syntax highlighting to Python code"""
+    # VS Code Dark+ theme colors
+    COLORS = {
+        'keyword': '#C586C0',      # Purple - if, for, def, class, return, etc.
+        'builtin': '#4EC9B0',      # Cyan - print, len, str, int, etc.
+        'string': '#CE9178',       # Orange - strings
+        'comment': '#6A9955',      # Green - comments
+        'function': '#DCDCAA',     # Yellow - function names
+        'number': '#B5CEA8',       # Light green - numbers
+        'default': '#D4D4D4'       # Light gray - default text
+    }
+    
+    # Python keywords
+    keywords = {
+        'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 
+        'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 
+        'except', 'finally', 'for', 'from', 'global', 'if', 'import', 
+        'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 
+        'return', 'try', 'while', 'with', 'yield'
+    }
+    
+    # Built-in functions
+    builtins = {
+        'print', 'len', 'str', 'int', 'float', 'list', 'dict', 'set', 
+        'tuple', 'range', 'enumerate', 'zip', 'map', 'filter', 'sum', 
+        'min', 'max', 'abs', 'all', 'any', 'bool', 'bytes', 'display',
+        'isinstance', 'type', 'open', 'sorted', 'append', 'setdefault'
+    }
+    
+    # Tokenize and colorize
+    result = []
+    i = 0
+    while i < len(code):
+        # Skip already processed
+        char = code[i]
+        
+        # Comments
+        if char == '#':
+            end = code.find('\n', i)
+            if end == -1:
+                end = len(code)
+            comment = code[i:end].replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            result.append(f'<font color="{COLORS["comment"]}">{comment}</font>')
+            i = end
+            continue
+        
+        # Strings
+        if char in ('"', "'"):
+            quote = char
+            j = i + 1
+            # Handle triple quotes
+            if code[i:i+3] in ('"""', "'''"):
+                quote = code[i:i+3]
+                j = i + 3
+                end = code.find(quote, j)
+                if end != -1:
+                    end += 3
+                else:
+                    end = len(code)
+            else:
+                # Single/double quote
+                while j < len(code):
+                    if code[j] == '\\' and j + 1 < len(code):
+                        j += 2
+                    elif code[j] == quote:
+                        j += 1
+                        break
+                    else:
+                        j += 1
+                end = j
+            
+            string = code[i:end].replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+            result.append(f'<font color="{COLORS["string"]}">{string}</font>')
+            i = end
+            continue
+        
+        # Numbers
+        if char.isdigit():
+            j = i
+            while j < len(code) and (code[j].isdigit() or code[j] == '.'):
+                j += 1
+            number = code[i:j]
+            result.append(f'<font color="{COLORS["number"]}">{number}</font>')
+            i = j
+            continue
+        
+        # Identifiers (keywords, builtins, functions)
+        if char.isalpha() or char == '_':
+            j = i
+            while j < len(code) and (code[j].isalnum() or code[j] == '_'):
+                j += 1
+            word = code[i:j]
+            
+            if word in keywords:
+                result.append(f'<font color="{COLORS["keyword"]}">{word}</font>')
+            elif word in builtins:
+                result.append(f'<font color="{COLORS["builtin"]}">{word}</font>')
+            else:
+                # Check if it's a function definition
+                if i > 0 and code[max(0,i-4):i].strip() == 'def':
+                    result.append(f'<font color="{COLORS["function"]}">{word}</font>')
+                else:
+                    result.append(f'<font color="{COLORS["default"]}">{word}</font>')
+            i = j
+            continue
+        
+        # Everything else (operators, whitespace, etc.)
+        safe_char = char.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+        result.append(f'<font color="{COLORS["default"]}">{safe_char}</font>')
+        i += 1
+    
+    return ''.join(result)
+
+
+def load_config(config_path):
+    """Load student info from config file"""
+    default_config = {
+        "student_name": "Your Name",
+        "roll_number": "",
+        "course": "IITM BS Degree",
+        "assignment": "Mini Project"
+    }
+    
+    if config_path and Path(config_path).exists():
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                return {**default_config, **config}
+        except Exception as e:
+            print(f"Warning: Could not load config: {e}")
+    
+    return default_config
+
+
+def create_header(config):
+    """Create a styled header for the PDF"""
+    styles = getSampleStyleSheet()
+    
+    # Custom title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#1a237e'),
+        spaceAfter=6,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    
+    # Custom info style
+    info_style = ParagraphStyle(
+        'InfoStyle',
+        parent=styles['Normal'],
+        fontSize=11,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#424242')
+    )
+    
+    story = []
+    
+    # Add title
+    story.append(Paragraph("Jupyter Notebook Execution Report", title_style))
+    story.append(Spacer(1, 0.3*cm))
+    
+    # Add student info table
+    info_data = [
+        ['Student:', config['student_name']],
+        ['Roll Number:', config['roll_number']] if config['roll_number'] else None,
+        ['Course:', config['course']],
+        ['Assignment:', config['assignment']],
+        ['Date:', datetime.now().strftime('%B %d, %Y')],
+    ]
+    info_data = [row for row in info_data if row]  # Remove None rows
+    
+    info_table = Table(info_data, colWidths=[4*cm, 12*cm])
+    info_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#424242')),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    
+    story.append(info_table)
+    story.append(Spacer(1, 0.5*cm))
+    
+    # Add horizontal line
+    line_data = [['_' * 100]]
+    line_table = Table(line_data, colWidths=[17*cm])
+    line_table.setStyle(TableStyle([
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1a237e')),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(line_table)
+    story.append(Spacer(1, 0.5*cm))
+    
+    return story
+
+
+def execute_notebook(notebook_path):
+    """Execute all cells in notebook and capture outputs"""
+    with open(notebook_path, 'r', encoding='utf-8') as f:
+        nb = json.load(f)
+    
+    cells = nb.get('cells', [])
+    results = []
+    
+    # Create global namespace for execution
+    glb = {'__name__': '__main__'}
+    
+    # Storage for captured DataFrames with their position in output
+    captured_dataframes = []
+    
+    # Storage for captured plots/figures
+    captured_figures = []
+    
+    # Custom display function
+    def display(obj):
+        try:
+            import pandas as pd
+            if isinstance(obj, pd.DataFrame):
+                # Store DataFrame for table rendering with a marker
+                marker = f"__DATAFRAME_MARKER_{len(captured_dataframes)}__"
+                captured_dataframes.append(obj.copy())
+                # Print marker so we know where to insert the table
+                print(marker)
+                return
+        except:
+            pass
+        print(repr(obj))
+    
+    glb['display'] = display
+    
+    # Custom plt.show() wrapper to capture figures
+    original_show = None
+    def custom_show():
+        """Capture matplotlib figures when plt.show() is called"""
+        try:
+            import matplotlib.pyplot as plt
+            # Get all current figures
+            figs = [plt.figure(n) for n in plt.get_fignums()]
+            for fig in figs:
+                # Save figure to temporary file
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                fig.savefig(temp_file.name, format='png', dpi=150, bbox_inches='tight')
+                captured_figures.append(temp_file.name)
+                temp_file.close()
+                print(f"__FIGURE_MARKER_{len(captured_figures) - 1}__")
+            
+            # Close figures to prevent display
+            plt.close('all')
+        except Exception as e:
+            pass
+    
+    # Try to patch matplotlib's show function if it's imported
+    try:
+        import matplotlib.pyplot as plt
+        original_show = plt.show
+        plt.show = custom_show
+        glb['plt'] = plt  # Make patched plt available
+    except ImportError:
+        pass  # matplotlib not available, that's ok
+    
+    for idx, cell in enumerate(cells, 1):
+        cell_type = cell.get('cell_type')
+        source = ''.join(cell.get('source', []))
+        
+        # Reset DataFrame capture for each cell
+        captured_dataframes.clear()
+        captured_figures.clear()
+        
+        cell_result = {
+            'index': idx,
+            'type': cell_type,
+            'source': source,
+            'output': '',
+            'error': None,
+            'dataframes': [],
+            'figures': []
+        }
+        
+        if cell_type == 'code':
+            # Capture stdout and stderr with size limits
+            old_stdout = sys.stdout
+            old_stderr = sys.stderr
+            buf_out = io.StringIO()
+            buf_err = io.StringIO()
+            sys.stdout = buf_out
+            sys.stderr = buf_err
+            
+            # Track output size to prevent memory issues
+            max_output_size = 1_000_000  # 1MB limit
+            
+            result_value = None
+            try:
+                # Execute the code and try to capture the last expression result
+                code_lines = source.strip().split('\n')
+                
+                if not code_lines or not source.strip():
+                    # Empty cell, skip
+                    pass
+                else:
+                    # Check if the last line could be an expression
+                    last_line = code_lines[-1].strip()
+                    
+                    # Skip expression evaluation for these patterns
+                    skip_patterns = ('#', 'import ', 'from ', 'def ', 'class ', 'if ', 'for ', 
+                                   'while ', 'with ', 'try:', 'except', 'finally:', 'else:', 
+                                   'elif ', 'return', 'pass', 'break', 'continue', 'raise',
+                                   'assert', 'del ', 'global ', 'nonlocal ', 'yield', 'async ')
+                    
+                    is_statement = any(last_line.startswith(p) for p in skip_patterns) or \
+                                  last_line.endswith(':') or '=' in last_line.split('#')[0]
+                    
+                    if len(code_lines) == 1 and not is_statement:
+                        # Single line that might be an expression
+                        try:
+                            result_value = eval(last_line, glb)
+                        except:
+                            # Not an expression, execute as statement
+                            exec(last_line, glb)
+                    else:
+                        # Multiple lines or definitely a statement
+                        # Execute all but the last line first
+                        if len(code_lines) > 1:
+                            exec('\n'.join(code_lines[:-1]), glb)
+                        
+                        # Try to eval the last line if it might be an expression
+                        if not is_statement and last_line:
+                            try:
+                                result_value = eval(last_line, glb)
+                            except:
+                                # Execute as statement
+                                exec(last_line, glb)
+                        else:
+                            # Execute the last line as a statement
+                            if last_line:
+                                exec(last_line, glb)
+            except Exception as e:
+                import traceback
+                cell_result['error'] = traceback.format_exc()
+            finally:
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+            
+            # Safely get output with size check
+            try:
+                if buf_out.tell() > max_output_size:
+                    output = "[Output truncated - exceeded 1MB limit]\n"
+                else:
+                    output = buf_out.getvalue()
+                    
+                if buf_err.tell() > max_output_size:
+                    errors = "[Error output truncated - exceeded 1MB limit]\n"
+                else:
+                    errors = buf_err.getvalue()
+            except MemoryError:
+                output = "[Output too large - memory error]\n"
+                errors = ""
+            
+            # Add the result value if it exists and isn't None
+            if result_value is not None:
+                try:
+                    import pandas as pd
+                    # Check if it's a DataFrame
+                    if isinstance(result_value, pd.DataFrame):
+                        # Add DataFrame to the list
+                        captured_dataframes.append(result_value)
+                        output += f"__DATAFRAME_MARKER_{len(captured_dataframes) - 1}__\n"
+                    else:
+                        # Try to detect matplotlib figure
+                        try:
+                            import matplotlib
+                            if isinstance(result_value, matplotlib.figure.Figure):
+                                # Save the figure (we'll add image support later)
+                                output += "[Matplotlib Figure - graph display not yet supported]\n"
+                            else:
+                                # Safe repr with size limit
+                                result_repr = repr(result_value)
+                                if len(result_repr) > 5000:  # Limit to 5000 chars
+                                    result_repr = result_repr[:5000] + "... (output truncated)"
+                                output += result_repr + '\n'
+                        except ImportError:
+                            # matplotlib not available, use safe repr
+                            result_repr = repr(result_value)
+                            if len(result_repr) > 5000:
+                                result_repr = result_repr[:5000] + "... (output truncated)"
+                            output += result_repr + '\n'
+                except Exception as e:
+                    # Fallback for any errors
+                    try:
+                        result_repr = str(result_value)
+                        if len(result_repr) > 5000:
+                            result_repr = result_repr[:5000] + "... (output truncated)"
+                        output += result_repr + '\n'
+                    except:
+                        output += "[Output could not be displayed]\n"
+            
+            if output:
+                cell_result['output'] = output
+            if errors:
+                cell_result['output'] += '\n[STDERR]\n' + errors
+            
+            # Store captured DataFrames
+            if captured_dataframes:
+                cell_result['dataframes'] = [df.copy() for df in captured_dataframes]
+            
+            # Store captured figures
+            if captured_figures:
+                cell_result['figures'] = captured_figures.copy()
+        
+        results.append(cell_result)
+    
+    return results
+
+
+def dataframe_to_table(df, max_rows=50):
+    """Convert a pandas DataFrame to a ReportLab Table"""
+    # Limit rows to prevent huge tables
+    if len(df) > max_rows:
+        df = df.head(max_rows)
+        truncated = True
+    else:
+        truncated = False
+    
+    # Prepare data with headers
+    data = []
+    
+    # Add column headers
+    headers = [''] + list(df.columns) if df.index.name or not all(isinstance(i, int) and i == idx for idx, i in enumerate(df.index)) else list(df.columns)
+    if headers[0] == '':
+        headers = ['Index'] + list(df.columns)
+        data.append(headers)
+        # Add rows with index
+        for idx, row in df.iterrows():
+            data.append([str(idx)] + [str(val) for val in row])
+    else:
+        data.append(list(df.columns))
+        # Add rows without index
+        for _, row in df.iterrows():
+            data.append([str(val) for val in row])
+    
+    # Create table with styling
+    table = Table(data, repeatRows=1)
+    
+    # Apply table style
+    table.setStyle(TableStyle([
+        # Header row
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1976d2')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        
+        # Data rows
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        
+        # Alternating row colors
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+    ]))
+    
+    return table, truncated
+
+
+def create_pdf(notebook_path, output_path, config):
+    """Create PDF from notebook execution results"""
+    print(f"📓 Loading notebook: {notebook_path}")
+    
+    # Execute notebook
+    print("⚙️  Executing cells...")
+    results = execute_notebook(notebook_path)
+    
+    # Create PDF
+    print(f"📄 Generating PDF: {output_path}")
+    doc = SimpleDocTemplate(
+        str(output_path),
+        pagesize=A4,
+        rightMargin=2*cm,
+        leftMargin=2*cm,
+        topMargin=2.5*cm,
+        bottomMargin=2.5*cm
+    )
+    
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    code_style = ParagraphStyle(
+        'Code',
+        parent=styles['Code'],
+        fontSize=9,
+        fontName='Courier',
+        leading=12,  # Line height - prevents text from being cut at bottom
+        leftIndent=10,
+        rightIndent=10,
+        textColor=colors.HexColor('#000000'),  # Pure black for better visibility
+        backColor=colors.HexColor('#f5f5f5'),
+        borderPadding=5,
+        spaceBefore=5,
+        spaceAfter=5
+    )
+    
+    output_style = ParagraphStyle(
+        'Output',
+        parent=styles['Code'],
+        fontSize=9,
+        fontName='Courier',
+        leading=12,  # Line height - prevents text from being cut at bottom
+        leftIndent=10,
+        rightIndent=10,
+        textColor=colors.HexColor('#1b5e20'),  # Darker green for better visibility
+        backColor=colors.HexColor('#e8f5e9'),
+        borderPadding=5,
+        spaceBefore=5,
+        spaceAfter=5
+    )
+    
+    error_style = ParagraphStyle(
+        'Error',
+        parent=styles['Code'],
+        fontSize=9,
+        fontName='Courier',
+        leading=12,  # Line height - prevents text from being cut at bottom
+        leftIndent=10,
+        rightIndent=10,
+        textColor=colors.HexColor('#b71c1c'),  # Darker red for better visibility
+        backColor=colors.HexColor('#ffebee'),
+        borderPadding=5
+    )
+    
+    cell_header_style = ParagraphStyle(
+        'CellHeader',
+        parent=styles['Heading3'],
+        fontSize=11,
+        textColor=colors.HexColor('#1976d2'),
+        spaceAfter=5,
+        fontName='Helvetica-Bold'
+    )
+    
+    markdown_style = ParagraphStyle(
+        'Markdown',
+        parent=styles['Normal'],
+        fontSize=10,
+        leftIndent=10,
+        spaceAfter=10
+    )
+    
+    story = []
+    
+    # Add header
+    story.extend(create_header(config))
+    
+    # Add cells
+    for result in results:
+        # Cell header
+        cell_type_label = "📝 Markdown" if result['type'] == 'markdown' else "💻 Code"
+        header_text = f"Cell {result['index']}: {cell_type_label}"
+        story.append(Paragraph(header_text, cell_header_style))
+        
+        if result['type'] == 'markdown':
+            # Render markdown as paragraph
+            md_text = result['source'].replace('<', '&lt;').replace('>', '&gt;')
+            # Simple markdown rendering
+            lines = md_text.split('\n')
+            for line in lines:
+                if line.strip():
+                    # Convert markdown headings
+                    if line.startswith('# '):
+                        story.append(Paragraph(f"<b>{line[2:]}</b>", styles['Heading1']))
+                    elif line.startswith('## '):
+                        story.append(Paragraph(f"<b>{line[3:]}</b>", styles['Heading2']))
+                    elif line.startswith('### '):
+                        story.append(Paragraph(f"<b>{line[4:]}</b>", styles['Heading3']))
+                    else:
+                        story.append(Paragraph(line, markdown_style))
+        
+        elif result['type'] == 'code':
+            # Add code with syntax highlighting
+            if result['source'].strip():
+                # Split code into lines and apply highlighting per line
+                code_lines = result['source'].split('\n')
+                for line in code_lines:
+                    if line.strip():
+                        # Apply syntax highlighting to non-empty lines
+                        highlighted = syntax_highlight_python(line)
+                        try:
+                            story.append(Paragraph(highlighted, code_style))
+                        except:
+                            # Fallback to plain text if highlighting fails
+                            safe_line = line.replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;')
+                            story.append(Preformatted(safe_line, code_style))
+                    else:
+                        # Empty line
+                        story.append(Spacer(1, 0.1*cm))
+            
+            # Process output - combine text and DataFrames
+            if result.get('output') or result.get('dataframes'):
+                story.append(Spacer(1, 0.2*cm))
+                story.append(Paragraph("<b>Output:</b>", styles['Normal']))
+                story.append(Spacer(1, 0.1*cm))
+                
+                # Process output with DataFrames and Figures
+                if result.get('dataframes') or result.get('figures'):
+                    output_text = result.get('output', '')
+                    dataframes = result.get('dataframes', [])
+                    figures = result.get('figures', [])
+                    
+                    # Split by both DataFrame and Figure markers
+                    lines = output_text.split('\n')
+                    
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+                            
+                        # Check for DataFrame marker
+                        if '__DATAFRAME_MARKER_' in line:
+                            try:
+                                df_idx = int(line.split('__DATAFRAME_MARKER_')[1].split('__')[0])
+                                if df_idx < len(dataframes):
+                                    story.append(Spacer(1, 0.1*cm))
+                                    table, truncated = dataframe_to_table(dataframes[df_idx])
+                                    story.append(table)
+                                    if truncated:
+                                        story.append(Paragraph(f"<i>... (showing first 50 rows)</i>", styles['Italic']))
+                                    story.append(Spacer(1, 0.1*cm))
+                            except (ValueError, IndexError):
+                                pass
+                        
+                        # Check for Figure marker
+                        elif '__FIGURE_MARKER_' in line:
+                            try:
+                                fig_idx = int(line.split('__FIGURE_MARKER_')[1].split('__')[0])
+                                if fig_idx < len(figures):
+                                    # Add the figure image
+                                    img_path = figures[fig_idx]
+                                    if os.path.exists(img_path):
+                                        story.append(Spacer(1, 0.2*cm))
+                                        # Scale image to fit page width (max 15cm)
+                                        img = Image(img_path, width=15*cm, height=10*cm, kind='proportional')
+                                        story.append(img)
+                                        story.append(Spacer(1, 0.2*cm))
+                            except (ValueError, IndexError, Exception):
+                                pass
+                        
+                        # Regular output line
+                        else:
+                            safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
+                            if safe_line:
+                                story.append(Preformatted(safe_line, output_style))
+                
+                # If no DataFrames or Figures, just show text output
+                elif result.get('output'):
+                    output_lines = result['output'].split('\n')
+                    for line in output_lines[:100]:  # Limit output lines
+                        safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
+                        story.append(Preformatted(safe_line, output_style))
+                    if len(output_lines) > 100:
+                        story.append(Paragraph(f"<i>... ({len(output_lines)-100} more lines truncated)</i>", styles['Italic']))
+            
+            # Add error
+            if result['error']:
+                story.append(Spacer(1, 0.2*cm))
+                story.append(Paragraph("<b>Error:</b>", styles['Normal']))
+                error_lines = result['error'].split('\n')
+                for line in error_lines:
+                    safe_line = line.replace('<', '&lt;').replace('>', '&gt;')
+                    story.append(Preformatted(safe_line, error_style))
+        
+        story.append(Spacer(1, 0.5*cm))
+    
+    # Build PDF with page numbers
+    doc.build(story, canvasmaker=NumberedCanvas)
+    
+    # Clean up temporary figure files
+    for result in results:
+        if result.get('figures'):
+            for fig_path in result['figures']:
+                try:
+                    if os.path.exists(fig_path):
+                        os.unlink(fig_path)
+                except:
+                    pass  # Ignore cleanup errors
+    
+    print(f"✅ PDF created successfully: {output_path}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Convert Jupyter Notebook to Professional PDF',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python nb2pdf.py mynotebook.ipynb
+  python nb2pdf.py mynotebook.ipynb --output report.pdf
+  python nb2pdf.py mynotebook.ipynb --config student_info.json
+        """
+    )
+    
+    parser.add_argument('notebook', help='Path to Jupyter notebook (.ipynb)')
+    parser.add_argument('--output', '-o', help='Output PDF path (default: notebook_name.pdf)')
+    parser.add_argument('--config', '-c', help='Student info config file (default: student_info.json)')
+    
+    args = parser.parse_args()
+    
+    # Validate notebook path
+    notebook_path = Path(args.notebook)
+    if not notebook_path.exists():
+        print(f"❌ Error: Notebook not found: {notebook_path}")
+        sys.exit(1)
+    
+    if not notebook_path.suffix == '.ipynb':
+        print(f"❌ Error: File must be a Jupyter notebook (.ipynb)")
+        sys.exit(1)
+    
+    # Determine output path
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        output_path = notebook_path.with_suffix('.pdf')
+    
+    # Load config
+    config_path = args.config or 'student_info.json'
+    config = load_config(config_path)
+    
+    # Create PDF
+    try:
+        create_pdf(notebook_path, output_path, config)
+    except Exception as e:
+        print(f"❌ Error creating PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

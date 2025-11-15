@@ -1,5 +1,8 @@
 node_modules
-out
+src
 *.vsix
 .vscode-test/
 *.log
+tsconfig.json
+.gitignore
+SETUP.md

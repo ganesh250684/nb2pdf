@@ -53,15 +53,15 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
             }
         }
 
-        // Get nb2pdf.py path (assume it's in the workspace root or extension)
+        // Get nb2pdf.py path (bundled with extension or in workspace)
         const nb2pdfScript = await findNb2pdfScript();
         if (!nb2pdfScript) {
             vscode.window.showErrorMessage(
-                'nb2pdf.py not found! Please ensure nb2pdf.py is in your workspace root.',
-                'Open Settings'
+                'nb2pdf.py script error! Please reinstall the extension.',
+                'Reinstall Extension'
             ).then(selection => {
-                if (selection === 'Open Settings') {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'nb2pdf');
+                if (selection === 'Reinstall Extension') {
+                    vscode.env.openExternal(vscode.Uri.parse('https://marketplace.visualstudio.com/items?itemName=ganesh-kumbhar.nb2pdf'));
                 }
             });
             return;
@@ -146,7 +146,16 @@ async function getNotebookPath(uri?: vscode.Uri): Promise<string | undefined> {
 }
 
 async function findNb2pdfScript(): Promise<string | undefined> {
-    // Check workspace root
+    // First, try the bundled script in the extension
+    const extensionPath = vscode.extensions.getExtension('ganesh-kumbhar.nb2pdf')?.extensionPath;
+    if (extensionPath) {
+        const bundledScript = path.join(extensionPath, 'scripts', 'nb2pdf.py');
+        if (fs.existsSync(bundledScript)) {
+            return bundledScript;
+        }
+    }
+
+    // Fallback: Check workspace root (for development/custom versions)
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders) {
         for (const folder of workspaceFolders) {
@@ -157,8 +166,6 @@ async function findNb2pdfScript(): Promise<string | undefined> {
         }
     }
 
-    // Check if nb2pdf is installed globally (future enhancement)
-    // For now, require it to be in workspace
     return undefined;
 }
 
