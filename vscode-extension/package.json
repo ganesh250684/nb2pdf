@@ -1,0 +1,133 @@
+{
+  "name": "nb2pdf",
+  "displayName": "nb2pdf - Notebook to PDF",
+  "description": "Convert Jupyter Notebooks to beautiful, professional PDFs with syntax highlighting, DataFrames, and graphs",
+  "version": "1.0.0",
+  "publisher": "ganesh-kumbhar",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ganesh250684/nb2pdf"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Data Science",
+    "Formatters"
+  ],
+  "keywords": [
+    "jupyter",
+    "notebook",
+    "pdf",
+    "export",
+    "converter",
+    "ipynb",
+    "student",
+    "assignment"
+  ],
+  "activationEvents": [
+    "onLanguage:jupyter"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "nb2pdf.convertNotebook",
+        "title": "Convert Notebook to PDF",
+        "category": "nb2pdf",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "nb2pdf.convertWithCustomName",
+        "title": "Convert to PDF with Custom Name",
+        "category": "nb2pdf"
+      },
+      {
+        "command": "nb2pdf.configureStudentInfo",
+        "title": "Configure Student Information",
+        "category": "nb2pdf",
+        "icon": "$(account)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .ipynb",
+          "command": "nb2pdf.convertNotebook",
+          "group": "nb2pdf@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "when": "notebookType == jupyter-notebook",
+          "command": "nb2pdf.convertNotebook",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nb2pdf.convertNotebook",
+          "when": "resourceExtname == .ipynb || notebookType == jupyter-notebook"
+        },
+        {
+          "command": "nb2pdf.convertWithCustomName",
+          "when": "resourceExtname == .ipynb || notebookType == jupyter-notebook"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "nb2pdf",
+      "properties": {
+        "nb2pdf.studentName": {
+          "type": "string",
+          "default": "Your Full Name",
+          "description": "Student name to appear in PDF header"
+        },
+        "nb2pdf.rollNumber": {
+          "type": "string",
+          "default": "21f1234567",
+          "description": "Roll number to appear in PDF header"
+        },
+        "nb2pdf.course": {
+          "type": "string",
+          "default": "IITM BS Degree - Data Science",
+          "description": "Course name to appear in PDF header"
+        },
+        "nb2pdf.assignment": {
+          "type": "string",
+          "default": "Assignment Title",
+          "description": "Assignment title to appear in PDF header"
+        },
+        "nb2pdf.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom Python path (leave empty to use workspace Python)"
+        },
+        "nb2pdf.autoOpenPdf": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open PDF after generation"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "eslint": "^8.x",
+    "typescript": "^5.x",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
