@@ -28,6 +28,31 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfgen import canvas
 
 
+def get_unique_output_path(output_path):
+    """Generate unique output path if file exists by appending datetime.
+    
+    Args:
+        output_path: Path object for desired output file
+        
+    Returns:
+        Path object with unique filename if original exists
+    """
+    if not output_path.exists():
+        return output_path
+    
+    # File exists, create new name with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    stem = output_path.stem
+    suffix = output_path.suffix
+    parent = output_path.parent
+    
+    new_name = f"{stem}_{timestamp}{suffix}"
+    new_path = parent / new_name
+    
+    print(f"[INFO] Output file exists. Creating: {new_name}")
+    return new_path
+
+
 class NumberedCanvas(canvas.Canvas):
     """Custom canvas to add page numbers"""
     def __init__(self, *args, **kwargs):
@@ -402,6 +427,9 @@ def dataframe_to_table(df, max_rows=50):
 def create_pdf(notebook_path, output_path, config):
     """Create PDF from notebook execution results"""
     print(f"[*] Loading notebook: {notebook_path}")
+    
+    # Check if output file exists and get unique path if needed
+    output_path = get_unique_output_path(Path(output_path))
     
     # Execute notebook
     print("[*] Executing cells...")

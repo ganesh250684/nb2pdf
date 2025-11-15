@@ -2,6 +2,19 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.2] - 2024-01-XX
+
+### 🐛 Fixed
+- **Permission denied error** - When PDF file is open/locked, automatically creates new file with timestamp (e.g., `output_20251115_191341.pdf`)
+- No more crashes when output file already exists and is in use
+- Automatic unique filename generation prevents data loss
+
+### 🎯 Improved
+- Better user experience when converting multiple times
+- Informative message shows new filename when original is locked
+
+---
+
 ## [1.1.1] - 2024-01-XX
 
 ### 🐛 Fixed
