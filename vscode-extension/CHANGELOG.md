@@ -2,6 +2,15 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.4] - 2024-01-XX
+
+### 🐛 Fixed
+- **Text trimming at page bottom** - Increased bottom margin from 2.5cm to 3.5cm to prevent text from being cut off near page numbers
+- Content now has proper spacing from page footer
+- Better readability and professional appearance
+
+---
+
 ## [1.1.3] - 2024-01-XX
 
 ### 🐛 Fixed

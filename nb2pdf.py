@@ -443,7 +443,7 @@ def create_pdf(notebook_path, output_path, config):
         rightMargin=2*cm,
         leftMargin=2*cm,
         topMargin=2.5*cm,
-        bottomMargin=2.5*cm
+        bottomMargin=3.5*cm  # Increased to avoid text trimming near page numbers
     )
     
     styles = getSampleStyleSheet()
