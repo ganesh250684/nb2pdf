@@ -195,12 +195,12 @@ def syntax_highlight_python(code):
 
 
 def load_config(config_path):
-    """Load student info from config file"""
+    """Load user info from config file"""
     default_config = {
-        "student_name": "Your Name",
-        "roll_number": "",
-        "course": "IITM BS Degree",
-        "assignment": "Mini Project"
+        "name": "Your Name",
+        "id": "",
+        "project_title": "",
+        "project_subtitle": ""
     }
     
     if config_path and Path(config_path).exists():
@@ -244,12 +244,12 @@ def create_header(config):
     story.append(Paragraph("Jupyter Notebook Execution Report", title_style))
     story.append(Spacer(1, 0.3*cm))
     
-    # Add student info table
+    # Add user info table
     info_data = [
-        ['Student:', config['student_name']],
-        ['Roll Number:', config['roll_number']] if config['roll_number'] else None,
-        ['Course:', config['course']],
-        ['Assignment:', config['assignment']],
+        ['Name:', config['name']],
+        ['ID:', config['id']] if config['id'] else None,
+        ['Project Title:', config['project_title']] if config['project_title'] else None,
+        ['Project SubTitle:', config['project_subtitle']] if config['project_subtitle'] else None,
         ['Date:', datetime.now().strftime('%B %d, %Y')],
     ]
     info_data = [row for row in info_data if row]  # Remove None rows
@@ -460,7 +460,8 @@ def create_pdf(notebook_path, output_path, config):
         backColor=colors.HexColor('#f5f5f5'),
         borderPadding=5,
         spaceBefore=5,
-        spaceAfter=5
+        spaceAfter=5,
+        leading=14  # Increased line spacing (was 9, now 14 = ~1.5x line height)
     )
     
     output_style = ParagraphStyle(
@@ -474,7 +475,8 @@ def create_pdf(notebook_path, output_path, config):
         backColor=colors.HexColor('#e8f5e9'),
         borderPadding=5,
         spaceBefore=5,
-        spaceAfter=5
+        spaceAfter=5,
+        leading=14  # Increased line spacing for better readability
     )
     
     error_style = ParagraphStyle(
@@ -486,7 +488,8 @@ def create_pdf(notebook_path, output_path, config):
         rightIndent=10,
         textColor=colors.HexColor('#c62828'),
         backColor=colors.HexColor('#ffebee'),
-        borderPadding=5
+        borderPadding=5,
+        leading=14  # Increased line spacing for error messages
     )
     
     cell_header_style = ParagraphStyle(

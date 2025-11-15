@@ -2,7 +2,7 @@
   "name": "nb2pdf",
   "displayName": "nb2pdf - Notebook to PDF",
   "description": "Convert Jupyter Notebooks to beautiful, professional PDFs with syntax highlighting, DataFrames, and graphs",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "publisher": "ganeshkumbhar",
   "repository": {
     "type": "git",
@@ -85,25 +85,25 @@
     "configuration": {
       "title": "nb2pdf",
       "properties": {
-        "nb2pdf.studentName": {
+        "nb2pdf.name": {
           "type": "string",
-          "default": "Your Full Name",
-          "description": "Student name to appear in PDF header"
+          "default": "",
+          "description": "Your name to appear in PDF header"
         },
-        "nb2pdf.rollNumber": {
+        "nb2pdf.id": {
           "type": "string",
-          "default": "21f1234567",
-          "description": "Roll number to appear in PDF header"
+          "default": "",
+          "description": "Your ID (student ID, employee ID, etc.) to appear in PDF header"
         },
-        "nb2pdf.course": {
+        "nb2pdf.projectTitle": {
           "type": "string",
-          "default": "IITM BS Degree - Data Science",
-          "description": "Course name to appear in PDF header"
+          "default": "",
+          "description": "Project title to appear in PDF header"
         },
-        "nb2pdf.assignment": {
+        "nb2pdf.projectSubtitle": {
           "type": "string",
-          "default": "Assignment Title",
-          "description": "Assignment title to appear in PDF header"
+          "default": "",
+          "description": "Project subtitle to appear in PDF header"
         },
         "nb2pdf.pythonPath": {
           "type": "string",

@@ -426,10 +426,10 @@ async function createStudentInfoFile(): Promise<string> {
     const config = vscode.workspace.getConfiguration('nb2pdf');
     
     const studentInfo = {
-        student_name: config.get<string>('studentName') || 'Your Full Name',
-        roll_number: config.get<string>('rollNumber') || '21f1234567',
-        course: config.get<string>('course') || 'IITM BS Degree - Data Science',
-        assignment: config.get<string>('assignment') || 'Assignment Title'
+        name: config.get<string>('name') || 'Your Name',
+        id: config.get<string>('id') || '',
+        project_title: config.get<string>('projectTitle') || '',
+        project_subtitle: config.get<string>('projectSubtitle') || ''
     };
 
     // Create temp file
@@ -446,46 +446,46 @@ async function configureStudentInfo() {
 
     // Prompt for each field
     const name = await vscode.window.showInputBox({
-        prompt: 'Enter your full name',
-        value: config.get<string>('studentName'),
+        prompt: 'Enter your name',
+        value: config.get<string>('name'),
         placeHolder: 'John Doe'
     });
 
     if (name) {
-        await config.update('studentName', name, vscode.ConfigurationTarget.Global);
+        await config.update('name', name, vscode.ConfigurationTarget.Global);
     }
 
-    const rollNumber = await vscode.window.showInputBox({
-        prompt: 'Enter your roll number',
-        value: config.get<string>('rollNumber'),
+    const id = await vscode.window.showInputBox({
+        prompt: 'Enter your ID (optional - e.g., student ID, employee ID)',
+        value: config.get<string>('id'),
         placeHolder: '21f1234567'
     });
 
-    if (rollNumber) {
-        await config.update('rollNumber', rollNumber, vscode.ConfigurationTarget.Global);
+    if (id) {
+        await config.update('id', id, vscode.ConfigurationTarget.Global);
     }
 
-    const course = await vscode.window.showInputBox({
-        prompt: 'Enter your course name',
-        value: config.get<string>('course'),
-        placeHolder: 'IITM BS Degree - Data Science'
+    const projectTitle = await vscode.window.showInputBox({
+        prompt: 'Enter project title (optional)',
+        value: config.get<string>('projectTitle'),
+        placeHolder: 'Data Analysis Project'
     });
 
-    if (course) {
-        await config.update('course', course, vscode.ConfigurationTarget.Global);
+    if (projectTitle) {
+        await config.update('projectTitle', projectTitle, vscode.ConfigurationTarget.Global);
     }
 
-    const assignment = await vscode.window.showInputBox({
-        prompt: 'Enter assignment title',
-        value: config.get<string>('assignment'),
-        placeHolder: 'Mini Project Part A'
+    const projectSubtitle = await vscode.window.showInputBox({
+        prompt: 'Enter project subtitle (optional)',
+        value: config.get<string>('projectSubtitle'),
+        placeHolder: 'Week 5 Assignment'
     });
 
-    if (assignment) {
-        await config.update('assignment', assignment, vscode.ConfigurationTarget.Global);
+    if (projectSubtitle) {
+        await config.update('projectSubtitle', projectSubtitle, vscode.ConfigurationTarget.Global);
     }
 
-    vscode.window.showInformationMessage('✅ Student information updated!');
+    vscode.window.showInformationMessage('✅ Information updated!');
 }
 
 function handleConversionError(error: any, notebookPath: string) {

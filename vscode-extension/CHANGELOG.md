@@ -2,6 +2,28 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.7] - 2024-11-15
+
+### 🐛 Fixed
+- **Line spacing in code blocks** - Increased line height from 9pt to 14pt (1.55x) to prevent text from being cut off between lines
+- Multi-line code now displays with proper spacing for better readability
+
+### 🔄 Changed
+- **Renamed configuration fields** for broader use cases:
+  - `studentName` → `name` (Your Name)
+  - `rollNumber` → `id` (Your ID - student ID, employee ID, etc.)
+  - `course` → `projectTitle` (Project Title)
+  - `assignment` → `projectSubtitle` (Project SubTitle)
+- Updated PDF headers with new field labels
+- All fields now optional except Name
+
+### 🎯 Improved
+- More flexible for non-student users (professionals, researchers, etc.)
+- Better field naming for project documentation
+- Cleaner default values
+
+---
+
 ## [1.1.6] - 2024-01-XX
 
 ### 🎁 Added
