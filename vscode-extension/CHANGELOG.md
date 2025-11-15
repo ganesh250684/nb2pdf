@@ -2,6 +2,15 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.3] - 2024-01-XX
+
+### 🐛 Fixed
+- **Critical: "script not found" error** - Fixed incorrect extension ID lookup (was `ganesh-kumbhar.nb2pdf`, now `ganeshkumbhar.nb2pdf`)
+- Extension now correctly finds bundled nb2pdf.py script
+- Resolves "Extension may be corrupted" error for all users
+
+---
+
 ## [1.1.2] - 2024-01-XX
 
 ### 🐛 Fixed

@@ -323,7 +323,7 @@ async function getNotebookPath(uri?: vscode.Uri): Promise<string | undefined> {
 
 async function findNb2pdfScript(): Promise<string | undefined> {
     // First, try the bundled script in the extension
-    const extensionPath = vscode.extensions.getExtension('ganesh-kumbhar.nb2pdf')?.extensionPath;
+    const extensionPath = vscode.extensions.getExtension('ganeshkumbhar.nb2pdf')?.extensionPath;
     if (extensionPath) {
         const bundledScript = path.join(extensionPath, 'scripts', 'nb2pdf.py');
         if (fs.existsSync(bundledScript)) {
