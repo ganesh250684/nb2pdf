@@ -6,8 +6,50 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Migrate old settings to new field names (v1.1.7)
+function migrateSettings() {
+    const config = vscode.workspace.getConfiguration('nb2pdf');
+    
+    // Check if old settings exist
+    const oldStudentName = config.get<string>('studentName');
+    const oldRollNumber = config.get<string>('rollNumber');
+    const oldCourse = config.get<string>('course');
+    const oldAssignment = config.get<string>('assignment');
+    
+    // If any old settings exist, migrate them
+    if (oldStudentName || oldRollNumber || oldCourse || oldAssignment) {
+        console.log('Migrating old nb2pdf settings to new field names...');
+        
+        // Copy old values to new keys
+        if (oldStudentName) {
+            config.update('name', oldStudentName, vscode.ConfigurationTarget.Global);
+            config.update('studentName', undefined, vscode.ConfigurationTarget.Global); // Remove old
+        }
+        if (oldRollNumber) {
+            config.update('id', oldRollNumber, vscode.ConfigurationTarget.Global);
+            config.update('rollNumber', undefined, vscode.ConfigurationTarget.Global); // Remove old
+        }
+        if (oldCourse) {
+            config.update('projectTitle', oldCourse, vscode.ConfigurationTarget.Global);
+            config.update('course', undefined, vscode.ConfigurationTarget.Global); // Remove old
+        }
+        if (oldAssignment) {
+            config.update('projectSubtitle', oldAssignment, vscode.ConfigurationTarget.Global);
+            config.update('assignment', undefined, vscode.ConfigurationTarget.Global); // Remove old
+        }
+        
+        vscode.window.showInformationMessage(
+            '✅ nb2pdf settings migrated to v1.1.7 (Student Name→Name, Roll Number→ID, etc.)',
+            'OK'
+        );
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
-    console.log('nb2pdf extension is now active (v1.1.0)');
+    console.log('nb2pdf extension is now active (v1.1.7)');
+
+    // Migrate old settings to new field names
+    migrateSettings();
 
     // Register convert notebook command
     let convertCommand = vscode.commands.registerCommand('nb2pdf.convertNotebook', async (uri?: vscode.Uri) => {

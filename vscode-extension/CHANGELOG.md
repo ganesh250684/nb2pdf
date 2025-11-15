@@ -2,6 +2,17 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.8] - 2024-11-15
+
+### 🔧 Fixed
+- **Automatic settings migration** - Extension now automatically migrates old settings (studentName, rollNumber, course, assignment) to new field names (name, id, projectTitle, projectSubtitle)
+- Users upgrading from v1.1.6 or earlier will see their settings preserved automatically
+- No need to reconfigure manually after update
+
+### 🎯 Improved
+- Settings migration happens seamlessly on extension activation
+- Informational message confirms successful migration
+
 ## [1.1.7] - 2024-11-15
 
 ### 🐛 Fixed
