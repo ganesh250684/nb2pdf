@@ -234,9 +234,9 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 ## 📞 Support & Contact
 
-- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/Ganesh2506/nb2pdf/issues)
+- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/Ganesh250684/nb2pdf/issues)
 - 💬 **Discussions:** [GitHub Discussions](https://github.com/Ganesh2506/nb2pdf/discussions)
-- 📧 **Email:** ganesh.kumbhar@example.com *(replace with your email)*
+- 📧 **Email:** ganesh2506@gmail.com *(replace with your email)*
 - 🐦 **Twitter:** @ganesh2506 *(if you have Twitter)*
 
 ---
@@ -272,7 +272,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 - Template system
 - Chart/plot optimization
 
-**Vote on features:** [Feature Requests](https://github.com/Ganesh2506/nb2pdf/discussions/categories/ideas)
+**Vote on features:** [Feature Requests](https://github.com/Ganesh250684/nb2pdf/discussions/categories/ideas)
 
 ---
 
@@ -284,7 +284,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 - 📈 Improved grades through better presentation
 - 🌍 Students from 10+ countries *(goal)*
 
-**Share your success story!** [Submit testimonial](https://github.com/Ganesh2506/nb2pdf/discussions/categories/show-and-tell)
+**Share your success story!** [Submit testimonial](https://github.com/Ganesh250684/nb2pdf/discussions/categories/show-and-tell)
 
 ---
 
@@ -325,7 +325,7 @@ Yes! All cells are executed fresh to ensure outputs match code.
 ## 🏆 Hall of Fame
 
 **Top Contributors:** *(will be updated)*
-- 🥇 [@ganesh2506](https://github.com/Ganesh2506) - Creator
+- 🥇 [@ganesh2506](https://github.com/Ganesh250684) - Creator
 - 🥈 *Your name here!* - First contributor
 
 **Special Thanks:**
