@@ -2,6 +2,16 @@
 
 All notable changes to the "nb2pdf" extension will be documented in this file.
 
+## [1.1.9] - 2025-11-17
+
+### 🔧 Fixed
+- **Stable footer link** – Marketplace footer link is now rendered by the page callback, so it stays clickable without triggering ReportLab annotation errors.
+- **Missing output folder** – The converter now auto-creates the target output directory when it doesn't exist, preventing fresh installs from failing.
+
+### 📝 Updated
+- Documentation and screenshots updated for the new `name`/`id` field names and marketplace link.
+- VSIX packaging validated against the latest retail analysis notebook and sample library notebook.
+
 ## [1.1.8] - 2024-11-15
 
 ### 🔧 Fixed
