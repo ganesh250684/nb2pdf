@@ -82,10 +82,10 @@ pip install pandas matplotlib numpy
 
 ```json
 {
-    "student_name": "Your Full Name",
-    "roll_number": "21f1234567",
-    "course": "IITM BS Degree - Data Science",
-    "assignment": "Part A: City Library Management System"
+    "name": "Your Full Name",
+    "id": "21f1234567",
+    "project_title": "IITM BS Degree - Data Science",
+    "project_subtitle": "Part A: City Library Management System"
 }
 ```
 
@@ -158,7 +158,7 @@ When you run the command, you'll see:
 ```
 
 The PDF will contain:
-- **Header** with your name, roll number, course, assignment title
+- **Header** with your name, ID, project title, project subtitle
 - **Cell 1, Cell 2, etc.** with:
   - 💻 Code (with purple keywords, orange strings, green comments)
   - **Output:** section with print statements
@@ -246,9 +246,9 @@ python nb2pdf.py "D:\My Documents\notebook.ipynb"
 
 ### ✅ DO:
 - **Save your notebook** (Ctrl+S) before running nb2pdf - unsaved changes won't be included
-- Use descriptive output names: `Assignment1_RollNumber.pdf`
+- Use descriptive output names: `Assignment1_YourID.pdf`
 - Test on a small notebook first
-- Keep `student_info.json` updated with your current assignment details
+- Keep `student_info.json` updated with your current project details
 - Make sure all required libraries (pandas, numpy, etc.) are installed
 
 ### ❌ DON'T:

@@ -14,10 +14,10 @@ Edit `student_info.json`:
 
 ```json
 {
-    "student_name": "Your Name",
-    "roll_number": "Your Roll Number",
-    "course": "Your Course",
-    "assignment": "Your Assignment Title"
+    "name": "Your Name",
+    "id": "Your ID",
+    "project_title": "Your Project Title",
+    "project_subtitle": "Your Project Subtitle"
 }
 ```
 

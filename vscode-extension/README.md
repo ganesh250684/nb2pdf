@@ -8,7 +8,7 @@ Convert Jupyter Notebooks to beautiful, professional PDFs directly from VS Code!
 - 🎨 **Syntax Highlighting** - VS Code Dark+ color scheme for code
 - 📊 **DataFrames** - Pandas DataFrames rendered as beautiful tables
 - 📈 **Graphs** - Matplotlib figures embedded in PDF
-- 👤 **Custom Headers** - Add your name, roll number, and course info
+- 👤 **Custom Headers** - Add your name, ID, and project info
 - ⚡ **Fast** - Executes and converts in seconds
 - 🎓 **Student-Friendly** - Perfect for assignment submissions
 
@@ -22,15 +22,15 @@ Search for "nb2pdf" in VS Code Extensions marketplace and click Install.
 
 1. Open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
 2. Run `nb2pdf: Configure Student Information`
-3. Enter your details (name, roll number, course, assignment)
+3. Enter your details (name, ID, project title, project subtitle)
 
 Or set in VS Code Settings:
 ```json
 {
-  "nb2pdf.studentName": "Your Full Name",
-  "nb2pdf.rollNumber": "21f1234567",
-  "nb2pdf.course": "IITM BS Degree - Data Science",
-  "nb2pdf.assignment": "Assignment Title"
+  "nb2pdf.name": "Your Full Name",
+  "nb2pdf.id": "21f1234567",
+  "nb2pdf.projectTitle": "IITM BS Degree - Data Science",
+  "nb2pdf.projectSubtitle": "Assignment Title"
 }
 ```
 
@@ -70,10 +70,10 @@ pip install pandas matplotlib numpy
 
 This extension contributes the following settings:
 
-* `nb2pdf.studentName`: Your full name for PDF header
-* `nb2pdf.rollNumber`: Your roll number for PDF header
-* `nb2pdf.course`: Your course name for PDF header
-* `nb2pdf.assignment`: Assignment title for PDF header
+* `nb2pdf.name`: Your full name for PDF header
+* `nb2pdf.id`: Your ID (student ID, employee ID, etc.) for PDF header
+* `nb2pdf.projectTitle`: Your project title for PDF header
+* `nb2pdf.projectSubtitle`: Assignment or project subtitle for PDF header
 * `nb2pdf.pythonPath`: Custom Python executable path (optional)
 * `nb2pdf.autoOpenPdf`: Automatically open PDF after generation (default: true)
 

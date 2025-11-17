@@ -115,7 +115,7 @@ async function convertNotebookToPdf(uri?: vscode.Uri, customName: boolean = fals
                 'Get Help'
             ).then(selection => {
                 if (selection === 'Reinstall Extension') {
-                    vscode.env.openExternal(vscode.Uri.parse('https://marketplace.visualstudio.com/items?itemName=ganesh-kumbhar.nb2pdf'));
+                    vscode.env.openExternal(vscode.Uri.parse('https://marketplace.visualstudio.com/items?itemName=GaneshKumbhar.nb2pdf'));
                 } else if (selection === 'Get Help') {
                     vscode.env.openExternal(vscode.Uri.parse('https://github.com/ganesh250684/nb2pdf/issues'));
                 }

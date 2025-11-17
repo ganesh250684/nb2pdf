@@ -12,11 +12,16 @@ Author: Generated for IITM students
 License: Free to use and share
 """
 
+# Set matplotlib to non-interactive backend before any other imports
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend to prevent popup windows
+
 import json
 import sys
 import io
 import argparse
 import re
+import os
 from pathlib import Path
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
@@ -73,10 +78,38 @@ class NumberedCanvas(canvas.Canvas):
 
     def draw_page_number(self, page_num, page_count):
         self.setFont("Helvetica", 9)
+        self.setFillColorRGB(0, 0, 0)
+        # Page number on right
         self.drawRightString(
             A4[0] - 1.5*cm, 1*cm,
             f"Page {page_num} of {page_count}"
         )
+
+
+def draw_footer(canvas_obj, doc):
+    """Draw footer content (extension reference + clickable link)."""
+    canvas_obj.saveState()
+    canvas_obj.setFont("Helvetica", 7)
+    canvas_obj.setFillColorRGB(0.4, 0.4, 0.4)
+    footer_text = "Generated using nb2pdf VSCode Extension"
+    canvas_obj.drawString(1.5*cm, 1*cm, footer_text)
+
+    link_x = 1.5*cm + canvas_obj.stringWidth(footer_text, "Helvetica", 7) + 0.1*cm
+    link_text = "Get Extension"
+    canvas_obj.setFillColorRGB(0.2, 0.4, 0.8)
+    canvas_obj.drawString(link_x, 1*cm, link_text)
+
+    link_width = canvas_obj.stringWidth(link_text, "Helvetica", 7)
+    try:
+        canvas_obj.linkURL(
+            "https://marketplace.visualstudio.com/items?itemName=GaneshKumbhar.nb2pdf",
+            (link_x, 0.8*cm, link_x + link_width, 1.2*cm),
+            relative=0
+        )
+    except Exception:
+        pass
+    finally:
+        canvas_obj.restoreState()
 
 
 def syntax_highlight_python(code):
@@ -89,7 +122,7 @@ def syntax_highlight_python(code):
         'comment': '#6A9955',      # Green - comments
         'function': '#DCDCAA',     # Yellow - function names
         'number': '#B5CEA8',       # Light green - numbers
-        'default': '#D4D4D4'       # Light gray - default text
+        'default': '#000000'       # Black - default text for better readability
     }
     
     # Python keywords
@@ -284,84 +317,145 @@ def create_header(config):
 
 def execute_notebook(notebook_path):
     """Execute all cells in notebook and capture outputs"""
-    with open(notebook_path, 'r', encoding='utf-8') as f:
-        nb = json.load(f)
+    notebook_path = Path(notebook_path).resolve()
+    original_cwd = Path.cwd()
     
-    cells = nb.get('cells', [])
-    results = []
+    # Change to notebook directory for execution so relative paths work
+    try:
+        os.chdir(notebook_path.parent)
+    except Exception as cwd_error:
+        print(f"[WARN] Could not change directory to notebook folder {notebook_path.parent}: {cwd_error}")
     
-    # Create global namespace for execution
-    glb = {'__name__': '__main__'}
-    
-    # Storage for captured DataFrames with their position in output
-    captured_dataframes = []
-    
-    # Custom display function
-    def display(obj):
-        try:
-            import pandas as pd
-            if isinstance(obj, pd.DataFrame):
-                # Store DataFrame for table rendering with a marker
-                marker = f"__DATAFRAME_MARKER_{len(captured_dataframes)}__"
-                captured_dataframes.append(obj.copy())
-                # Print marker so we know where to insert the table
-                print(marker)
-                return
-        except:
-            pass
-        print(repr(obj))
-    
-    glb['display'] = display
-    
-    for idx, cell in enumerate(cells, 1):
-        cell_type = cell.get('cell_type')
-        source = ''.join(cell.get('source', []))
+    try:
+        with open(notebook_path, 'r', encoding='utf-8') as f:
+            nb = json.load(f)
         
-        # Reset DataFrame capture for each cell
-        captured_dataframes.clear()
+        cells = nb.get('cells', [])
+        results = []
         
-        cell_result = {
-            'index': idx,
-            'type': cell_type,
-            'source': source,
-            'output': '',
-            'error': None,
-            'dataframes': []
-        }
+        # Create global namespace for execution
+        glb = {'__name__': '__main__'}
         
-        if cell_type == 'code':
-            # Capture stdout and stderr
-            old_stdout = sys.stdout
-            old_stderr = sys.stderr
-            buf_out = io.StringIO()
-            buf_err = io.StringIO()
-            sys.stdout = buf_out
-            sys.stderr = buf_err
-            
+        # Ensure matplotlib uses non-interactive backend in execution context
+        import matplotlib
+        matplotlib.use('Agg', force=True)
+        import matplotlib.pyplot as plt
+        plt.ioff()  # Turn off interactive mode
+        
+        # Storage for captured DataFrames and plots
+        captured_dataframes = []
+        captured_plots = []
+        
+        # Custom display function
+        def display(obj):
             try:
-                exec(source, glb)
-            except Exception as e:
-                import traceback
-                cell_result['error'] = traceback.format_exc()
-            finally:
-                sys.stdout = old_stdout
-                sys.stderr = old_stderr
-            
-            output = buf_out.getvalue()
-            errors = buf_err.getvalue()
-            
-            if output:
-                cell_result['output'] = output
-            if errors:
-                cell_result['output'] += '\n[STDERR]\n' + errors
-            
-            # Store captured DataFrames
-            if captured_dataframes:
-                cell_result['dataframes'] = [df.copy() for df in captured_dataframes]
+                import pandas as pd
+                if isinstance(obj, pd.DataFrame):
+                    # Store DataFrame for table rendering with a marker
+                    marker = f"__DATAFRAME_MARKER_{len(captured_dataframes)}__"
+                    captured_dataframes.append(obj.copy())
+                    # Print marker so we know where to insert the table
+                    print(marker)
+                    return
+            except:
+                pass
+            print(repr(obj))
         
-        results.append(cell_result)
-    
-    return results
+        glb['display'] = display
+        
+        for idx, cell in enumerate(cells, 1):
+            cell_type = cell.get('cell_type')
+            source = ''.join(cell.get('source', []))
+            
+            # Reset DataFrame and plot capture for each cell
+            captured_dataframes.clear()
+            captured_plots.clear()
+            
+            cell_result = {
+                'index': idx,
+                'type': cell_type,
+                'source': source,
+                'output': '',
+                'error': None,
+                'dataframes': [],
+                'plots': []
+            }
+            
+            if cell_type == 'code':
+                # Capture stdout and stderr
+                old_stdout = sys.stdout
+                old_stderr = sys.stderr
+                buf_out = io.StringIO()
+                buf_err = io.StringIO()
+                sys.stdout = buf_out
+                sys.stderr = buf_err
+                
+                try:
+                    # Try to eval the last expression to capture its value like Jupyter does
+                    # Split into lines and check if last line is an expression
+                    lines = source.strip().split('\n')
+                    if lines:
+                        # Try to compile and exec all but last line, then eval last line
+                        try:
+                            if len(lines) > 1:
+                                exec('\n'.join(lines[:-1]), glb)
+                            # Try to evaluate the last line as an expression
+                            result = eval(lines[-1], glb)
+                            if result is not None:
+                                print(repr(result))
+                        except SyntaxError:
+                            # If last line isn't an expression, just exec everything
+                            exec(source, glb)
+                    else:
+                        exec(source, glb)
+                    
+                    # Capture matplotlib figures after execution
+                    try:
+                        import matplotlib.pyplot as plt
+                        # Get all figure numbers before capturing
+                        fig_nums = plt.get_fignums()
+                        if fig_nums:
+                            for fig_num in fig_nums:
+                                try:
+                                    fig = plt.figure(fig_num)
+                                    # Save figure to BytesIO
+                                    buf = io.BytesIO()
+                                    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+                                    buf.seek(0)
+                                    captured_plots.append(buf.getvalue())
+                                except Exception as fig_err:
+                                    print(f"Warning: Could not capture figure {fig_num}: {fig_err}", file=sys.stderr)
+                            plt.close('all')  # Close all figures to free memory
+                    except Exception as plt_err:
+                        print(f"Warning: Error capturing plots: {plt_err}", file=sys.stderr)
+                        
+                except Exception as e:
+                    import traceback
+                    cell_result['error'] = traceback.format_exc()
+                finally:
+                    sys.stdout = old_stdout
+                    sys.stderr = old_stderr
+                
+                output = buf_out.getvalue()
+                errors = buf_err.getvalue()
+                
+                if output:
+                    cell_result['output'] = output
+                if errors:
+                    cell_result['output'] += '\n[STDERR]\n' + errors
+                
+                # Store captured DataFrames and plots
+                if captured_dataframes:
+                    cell_result['dataframes'] = [df.copy() for df in captured_dataframes]
+                if captured_plots:
+                    cell_result['plots'] = captured_plots.copy()
+            
+            results.append(cell_result)
+        
+        return results
+    finally:
+        # Restore original working directory
+        os.chdir(original_cwd)
 
 
 def dataframe_to_table(df, max_rows=50):
@@ -430,6 +524,7 @@ def create_pdf(notebook_path, output_path, config):
     
     # Check if output file exists and get unique path if needed
     output_path = get_unique_output_path(Path(output_path))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Execute notebook
     print("[*] Executing cells...")
@@ -456,7 +551,7 @@ def create_pdf(notebook_path, output_path, config):
         fontName='Courier',
         leftIndent=10,
         rightIndent=10,
-        textColor=colors.HexColor('#1a1a1a'),
+        textColor=colors.HexColor('#000000'),  # Darker black for better readability
         backColor=colors.HexColor('#f5f5f5'),
         borderPadding=5,
         spaceBefore=5,
@@ -614,6 +709,25 @@ def create_pdf(notebook_path, output_path, config):
                     if len(output_lines) > 100:
                         story.append(Paragraph(f"<i>... ({len(output_lines)-100} more lines truncated)</i>", styles['Italic']))
             
+            # Add matplotlib plots
+            if result.get('plots'):
+                from reportlab.platypus import Image as RLImage
+                story.append(Spacer(1, 0.2*cm))
+                for plot_data in result['plots']:
+                    try:
+                        # Create image from bytes
+                        img = RLImage(io.BytesIO(plot_data))
+                        # Scale to fit page width (max 16cm to leave margins)
+                        max_width = 16*cm
+                        if img.drawWidth > max_width:
+                            aspect = img.drawHeight / img.drawWidth
+                            img.drawWidth = max_width
+                            img.drawHeight = max_width * aspect
+                        story.append(img)
+                        story.append(Spacer(1, 0.2*cm))
+                    except Exception as e:
+                        story.append(Paragraph(f"<i>[Error rendering plot: {str(e)}]</i>", styles['Italic']))
+            
             # Add error
             if result['error']:
                 story.append(Spacer(1, 0.2*cm))
@@ -625,8 +739,13 @@ def create_pdf(notebook_path, output_path, config):
         
         story.append(Spacer(1, 0.5*cm))
     
-    # Build PDF with page numbers
-    doc.build(story, canvasmaker=NumberedCanvas)
+    # Build PDF with page numbers and footer
+    doc.build(
+        story,
+        onFirstPage=draw_footer,
+        onLaterPages=draw_footer,
+        canvasmaker=NumberedCanvas
+    )
     print(f"[SUCCESS] PDF created successfully: {output_path}")
 
 

@@ -37,7 +37,7 @@ python nb2pdf.py your_notebook.ipynb
 | 🎨 **Syntax Highlighting** | VS Code Dark+ color scheme (purple keywords, orange strings, green comments) |
 | 📊 **DataFrame Tables** | Pandas DataFrames render as beautiful bordered tables |
 | 📝 **Complete Output** | All print statements, outputs, and results preserved |
-| 👤 **Custom Headers** | Add your name, roll number, course info to every page |
+| 👤 **Custom Headers** | Add your name, ID, project info to every page |
 | 📄 **Page Numbers** | Professional footer with page numbering |
 | ⚡ **Fast Execution** | Runs all cells and generates PDF in seconds |
 | 🎓 **Student-Friendly** | Simple config, clear errors, no complex setup |
@@ -73,10 +73,10 @@ Edit `student_info.json` with your details:
 
 ```json
 {
-    "student_name": "Your Full Name",
-    "roll_number": "21f1234567",
-    "course": "IITM BS Degree - Data Science",
-    "assignment": "Mini Project Part A"
+    "name": "Your Full Name",
+    "id": "21f1234567",
+    "project_title": "IITM BS Degree - Data Science",
+    "project_subtitle": "Mini Project Part A"
 }
 ```
 
@@ -166,10 +166,10 @@ Edit `student_info.json` to customize:
 
 ```json
 {
-    "student_name": "Jane Doe",
-    "roll_number": "21f3001234",
-    "course": "IITM BS Degree - Data Science and Applications",
-    "assignment": "Week 5 Graded Assignment: Library Management System"
+    "name": "Jane Doe",
+    "id": "21f3001234",
+    "project_title": "IITM BS Degree - Data Science and Applications",
+    "project_subtitle": "Week 5 Graded Assignment: Library Management System"
 }
 ```
 
